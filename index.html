@@ -39,6 +39,133 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* --- Hamburger Button --- */
+.hamburger {
+  width: 36px; height: 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+.hamburger:hover { background: var(--bg-row-hover); }
+.hamburger span {
+  display: block;
+  width: 18px; height: 2px;
+  background: var(--text-dim);
+  border-radius: 1px;
+  transition: background 0.15s ease;
+}
+.hamburger:hover span { background: var(--text); }
+
+/* --- Nav Menu --- */
+.nav-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+.nav-overlay.show { display: block; }
+
+.nav-panel {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 280px;
+  background: var(--bg-card);
+  border-right: 1px solid var(--bg-card-border);
+  display: flex;
+  flex-direction: column;
+  z-index: 2001;
+  animation: slideRight 0.2s ease;
+}
+@keyframes slideRight { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+
+.nav-header {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--bg-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.nav-title {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+.nav-close {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.nav-close:hover { background: var(--bg-row-hover); color: var(--text); }
+
+.nav-body {
+  flex: 1;
+  padding: 12px 0;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.nav-item:hover { background: var(--bg-row-hover); color: var(--text); }
+.nav-item.active {
+  color: var(--text);
+  background: rgba(59, 130, 246, 0.08);
+  border-right: 2px solid var(--accent);
+}
+.nav-item svg { width: 18px; height: 18px; flex-shrink: 0; opacity: 0.6; }
+.nav-item.active svg { opacity: 1; }
+
+.nav-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--bg-card-border);
+}
+.nav-footer-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+}
+.nav-link {
+  display: block;
+  padding: 8px 0;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.nav-link:hover { color: #60a5fa; }
+
 /* --- Header --- */
 .header {
   padding: 24px 32px 20px;
@@ -578,6 +705,9 @@ td.pnl-neg { color: var(--red); }
 
 <div class="header">
   <div class="header-left">
+    <button class="hamburger" onclick="openNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <div class="header-logo" id="globalStatus"></div>
     <div class="header-title">Account Monitor</div>
   </div>
@@ -605,6 +735,25 @@ td.pnl-neg { color: var(--red); }
     <div class="spinner"></div>
     <div class="state-title">Connecting</div>
     <div class="state-desc">Loading account data...</div>
+  </div>
+</div>
+
+<div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
+<div class="nav-panel" id="navPanel" style="display:none">
+  <div class="nav-header">
+    <div class="nav-title">Menu</div>
+    <button class="nav-close" onclick="closeNav()">&times;</button>
+  </div>
+  <div class="nav-body">
+    <div class="nav-item active" onclick="closeNav()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Accounts
+    </div>
+  </div>
+  <div class="nav-footer">
+    <div class="nav-footer-label">Quick Links</div>
+    <a class="nav-link" href="https://my.coinexx.com/dashboard" target="_blank" rel="noopener">Coinexx Dashboard ↗</a>
+    <a class="nav-link" href="https://www.coinbase.com/cash" target="_blank" rel="noopener">Coinbase ↗</a>
   </div>
 </div>
 
@@ -735,6 +884,19 @@ if (!viewerKey) {
     }
   }, 1000);
 }
+
+// ─── NAV MENU ───────────────────────────────────────────
+function openNav() {
+  document.getElementById('navOverlay').classList.add('show');
+  document.getElementById('navPanel').style.display = 'flex';
+}
+function closeNav() {
+  document.getElementById('navOverlay').classList.remove('show');
+  document.getElementById('navPanel').style.display = 'none';
+}
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeNav();
+});
 
 // ─── COLLAPSE STATE ─────────────────────────────────────
 const collapsedCards = new Set();
