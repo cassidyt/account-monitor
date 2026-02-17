@@ -326,6 +326,7 @@ if (!viewerKey) {
   // ─── LISTEN FOR DATA ────────────────────────────────────
   const viewerRef = db.ref('viewers/' + viewerKey);
   let accountsData = {};
+  let lastDataTime = null;
 
   viewerRef.on('value', (snapshot) => {
     const data = snapshot.val();
@@ -343,6 +344,7 @@ if (!viewerKey) {
     }
 
     accountsData = data;
+    lastDataTime = Date.now();
     renderAccounts(data);
     updateGlobalStatus(data);
   });
@@ -355,12 +357,22 @@ if (!viewerKey) {
     }
   });
 
-  // Refresh staleness checks every 30s
+  // ─── LIVE TICKER - update header + staleness every second ───
   setInterval(() => {
+    if (lastDataTime) {
+      const ago = Math.floor((Date.now() - lastDataTime) / 1000);
+      if (ago < 60) {
+        lastUpdateEl.textContent = 'Updated ' + ago + 's ago';
+      } else if (ago < 3600) {
+        lastUpdateEl.textContent = 'Updated ' + Math.floor(ago / 60) + 'm ago';
+      } else {
+        lastUpdateEl.textContent = 'Updated ' + Math.floor(ago / 3600) + 'h ago';
+      }
+    }
     if (Object.keys(accountsData).length > 0) {
       updateGlobalStatus(accountsData);
     }
-  }, 30000);
+  }, 1000);
 }
 
 // ─── RENDER ─────────────────────────────────────────────
@@ -425,7 +437,7 @@ function renderCard(a) {
     <div class="account-card">
       <div class="card-header">
         <div>
-          <div class="card-name">${a.name}</div>
+          <div class="card-name">${a.name} <span class="card-meta" style="font-size:13px;margin-left:4px">#${a.login}</span></div>
           <div class="card-meta">${a.broker} · ${a.ccy}</div>
         </div>
         <div class="card-status ${statusClass}">
