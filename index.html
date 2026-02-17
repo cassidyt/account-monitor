@@ -636,6 +636,20 @@ td.pnl-neg { color: var(--red); }
   font-size: 13px;
 }
 
+/* --- Market Page --- */
+.page { display: none; }
+.page.active { display: block; }
+
+.market-chart {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  height: calc(100vh - 120px);
+  min-height: 400px;
+}
+.market-chart iframe { width: 100%; height: 100%; border: none; }
+
 /* --- State Screens --- */
 .state-screen {
   display: flex;
@@ -697,6 +711,7 @@ td.pnl-neg { color: var(--red); }
   .flyout-table td { padding: 9px 8px; font-size: 11px; }
   .flyout-table th:first-child, .flyout-table td:first-child { padding-left: 16px; }
   .flyout-table th:last-child, .flyout-table td:last-child { padding-right: 16px; }
+  .market-chart { height: calc(100vh - 90px); min-height: 300px; }
 }
 </style>
 </head>
@@ -730,12 +745,16 @@ td.pnl-neg { color: var(--red); }
   </div>
 </div>
 
-<div class="main" id="app">
+<div class="main page active" id="pageAccounts">
   <div class="state-screen" id="loadingState">
     <div class="spinner"></div>
     <div class="state-title">Connecting</div>
     <div class="state-desc">Loading account data...</div>
   </div>
+</div>
+
+<div class="main page" id="pageMarket">
+  <div class="market-chart" id="tvChartContainer"></div>
 </div>
 
 <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
@@ -745,9 +764,13 @@ td.pnl-neg { color: var(--red); }
     <button class="nav-close" onclick="closeNav()">&times;</button>
   </div>
   <div class="nav-body">
-    <div class="nav-item active" onclick="closeNav()">
+    <div class="nav-item active" data-page="accounts" onclick="navigateTo('accounts')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
       Accounts
+    </div>
+    <div class="nav-item" data-page="market" onclick="navigateTo('market')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Market
     </div>
   </div>
   <div class="nav-footer">
@@ -784,7 +807,7 @@ const db = firebase.database();
 const params = new URLSearchParams(window.location.search);
 const viewerKey = params.get('v');
 
-const app = document.getElementById('app');
+const app = document.getElementById('pageAccounts');
 const globalStatus = document.getElementById('globalStatus');
 const lastUpdateEl = document.getElementById('lastUpdate');
 const infoToggle = document.getElementById('infoToggle');
@@ -896,6 +919,89 @@ function closeNav() {
 }
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeNav();
+});
+
+// ─── PAGE ROUTING ───────────────────────────────────────
+let tvWidgetLoaded = false;
+
+function navigateTo(page) {
+  // Hide all pages
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  // Show target page
+  const target = document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1));
+  if (target) target.classList.add('active');
+
+  // Update nav active state
+  document.querySelectorAll('.nav-item[data-page]').forEach(item => {
+    item.classList.toggle('active', item.dataset.page === page);
+  });
+
+  // Lazy-load TradingView widget on first visit
+  if (page === 'market' && !tvWidgetLoaded) {
+    loadTradingViewWidget();
+    tvWidgetLoaded = true;
+  }
+
+  // Update hash
+  window.location.hash = page === 'accounts' ? '' : page;
+
+  closeNav();
+}
+
+function loadTradingViewWidget() {
+  const container = document.getElementById('tvChartContainer');
+  container.innerHTML = '';
+
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+  script.async = true;
+  script.textContent = JSON.stringify({
+    "symbol": "OANDA:XAUUSD",
+    "interval": "5",
+    "timezone": "Etc/UTC",
+    "theme": "dark",
+    "style": "3",
+    "locale": "en",
+    "backgroundColor": "rgba(12, 16, 25, 1)",
+    "gridColor": "rgba(22, 29, 44, 1)",
+    "toolbar_bg": "#0c1019",
+    "hide_side_toolbar": true,
+    "hide_legend": true,
+    "hide_volume": true,
+    "allow_symbol_change": false,
+    "save_image": false,
+    "details": false,
+    "calendar": false,
+    "support_host": "https://www.tradingview.com",
+    "width": "100%",
+    "height": "100%"
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tradingview-widget-container';
+  wrapper.style.height = '100%';
+  wrapper.style.width = '100%';
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.height = 'calc(100% - 32px)';
+  inner.style.width = '100%';
+  wrapper.appendChild(inner);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
+}
+
+// Handle initial hash on page load
+(function() {
+  const hash = window.location.hash.replace('#', '');
+  if (hash && hash !== 'accounts') {
+    navigateTo(hash);
+  }
+})();
+
+// Handle back/forward navigation
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash.replace('#', '') || 'accounts';
+  navigateTo(hash);
 });
 
 // ─── COLLAPSE STATE ─────────────────────────────────────
