@@ -381,8 +381,8 @@ function renderCard(a) {
   const statusClass = freshness === 'live' ? '' : freshness;
   const statusLabel = freshness === 'live' ? 'LIVE' : freshness === 'stale' ? 'STALE' : 'OFFLINE';
 
-  const floatClass = a.float >= 0 ? 'positive' : 'negative';
-  const pnlClass = a.pnl >= 0 ? 'positive' : 'negative';
+  const floatClass = a.pnl >= 0 ? 'positive' : 'negative';
+  const floatPct = a.bal !== 0 ? (a.pnl / a.bal * 100) : 0;
 
   let positionsHTML = '';
   if (a.positions && a.positions.length > 0) {
@@ -444,11 +444,11 @@ function renderCard(a) {
         </div>
         <div class="metric">
           <div class="metric-label">Floating P&L</div>
-          <div class="metric-value ${floatClass}">${formatMoney(a.float)}</div>
+          <div class="metric-value ${floatClass}">${formatMoney(a.pnl)}</div>
         </div>
         <div class="metric">
           <div class="metric-label">Float %</div>
-          <div class="metric-value ${floatClass}">${a.floatPct >= 0 ? '+' : ''}${a.floatPct.toFixed(2)}<span class="pct">%</span></div>
+          <div class="metric-value ${floatClass}">${floatPct >= 0 ? '+' : ''}${floatPct.toFixed(2)}<span class="pct">%</span></div>
         </div>
       </div>
       ${positionsHTML}
