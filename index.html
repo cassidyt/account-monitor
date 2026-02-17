@@ -270,6 +270,35 @@ body {
   letter-spacing: 0.6px;
   color: var(--text-dim);
   border-bottom: 1px solid var(--bg-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.positions-header:hover { background: var(--bg-row-hover); }
+.positions-header.no-border { border-bottom: none; }
+
+.pos-chevron {
+  width: 12px; height: 12px;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+  color: var(--text-dim);
+}
+.pos-chevron.collapsed { transform: rotate(-90deg); }
+
+.positions-body {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.positions-body.collapsed {
+  grid-template-rows: 0fr;
+}
+.positions-body-inner {
+  overflow: hidden;
 }
 
 .positions-table { width: 100%; border-collapse: collapse; }
@@ -435,6 +464,7 @@ document.addEventListener('click', () => {
 
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
+  document.title = 'Account Monitor';
   app.innerHTML = `
     <div class="state-screen">
       <div class="state-icon">🔑</div>
@@ -446,6 +476,8 @@ if (!viewerKey) {
       </div>
     </div>`;
 } else {
+  document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Account Monitor';
+
   // ─── LISTEN FOR DATA ────────────────────────────────────
   const viewerRef = db.ref('viewers/' + viewerKey);
   let accountsData = {};
@@ -500,6 +532,7 @@ if (!viewerKey) {
 
 // ─── COLLAPSE STATE ─────────────────────────────────────
 const collapsedCards = new Set();
+const expandedPositions = new Set();
 
 function toggleCard(headerEl) {
   const card = headerEl.closest('.account-card');
@@ -517,6 +550,23 @@ function toggleCard(headerEl) {
     body.classList.add('collapsed');
     chevron.classList.add('collapsed');
     headerEl.style.borderBottom = 'none';
+  }
+}
+
+function togglePositions(headerEl, login) {
+  const body = headerEl.nextElementSibling;
+  const chevron = headerEl.querySelector('.pos-chevron');
+
+  if (expandedPositions.has(login)) {
+    expandedPositions.delete(login);
+    body.classList.add('collapsed');
+    chevron.classList.add('collapsed');
+    headerEl.classList.add('no-border');
+  } else {
+    expandedPositions.add(login);
+    body.classList.remove('collapsed');
+    chevron.classList.remove('collapsed');
+    headerEl.classList.remove('no-border');
   }
 }
 
@@ -541,6 +591,21 @@ function renderAccounts(data) {
       card.querySelector('.card-header').style.borderBottom = 'none';
     }
   });
+
+  // Restore expanded positions state
+  expandedPositions.forEach(login => {
+    const card = app.querySelector(`.account-card[data-login="${login}"]`);
+    if (card) {
+      const posHeader = card.querySelector('.positions-header');
+      const posBody = card.querySelector('.positions-body');
+      const posChevron = card.querySelector('.pos-chevron');
+      if (posHeader && posBody && posChevron) {
+        posBody.classList.remove('collapsed');
+        posChevron.classList.remove('collapsed');
+        posHeader.classList.remove('no-border');
+      }
+    }
+  });
 }
 
 function renderCard(a) {
@@ -555,31 +620,38 @@ function renderCard(a) {
   if (a.positions && a.positions.length > 0) {
     positionsHTML = `
       <div class="positions-section">
-        <div class="positions-header">Open Positions (${a.positions.length})</div>
-        <table class="positions-table">
-          <thead>
-            <tr>
-              <th>Symbol</th>
-              <th>Dir</th>
-              <th>Volume</th>
-              <th>Open</th>
-              <th>Current</th>
-              <th>P&L</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${a.positions.map(p => `
-              <tr>
-                <td>${p.sy}</td>
-                <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir}</td>
-                <td>${p.vol.toFixed(2)}</td>
-                <td>${formatPrice(p.op)}</td>
-                <td>${formatPrice(p.cp)}</td>
-                <td class="${p.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl)}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
+        <div class="positions-header no-border" onclick="togglePositions(this, '${a.login}')">
+          <span>Open Positions (${a.positions.length})</span>
+          <svg class="pos-chevron collapsed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+        </div>
+        <div class="positions-body collapsed">
+          <div class="positions-body-inner">
+            <table class="positions-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Dir</th>
+                  <th>Volume</th>
+                  <th>Open</th>
+                  <th>Current</th>
+                  <th>P&L</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${a.positions.map(p => `
+                  <tr>
+                    <td>${p.sy}</td>
+                    <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir}</td>
+                    <td>${p.vol.toFixed(2)}</td>
+                    <td>${formatPrice(p.op)}</td>
+                    <td>${formatPrice(p.cp)}</td>
+                    <td class="${p.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>`;
   } else {
     positionsHTML = `
