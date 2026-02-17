@@ -333,8 +333,12 @@ body {
 
 .dir-buy { color: var(--green); font-weight: 600; }
 .dir-sell { color: var(--red); font-weight: 600; }
+td.dir-buy { color: var(--green); }
+td.dir-sell { color: var(--red); }
 .pnl-pos { color: var(--green); }
 .pnl-neg { color: var(--red); }
+td.pnl-pos { color: var(--green); }
+td.pnl-neg { color: var(--red); }
 
 .no-positions {
   padding: 20px 22px;
@@ -493,6 +497,10 @@ body {
 .flyout-table tr:nth-child(even) { background: var(--bg-row-alt); }
 .flyout-table tr:hover td { background: var(--bg-row-hover); }
 .flyout-table tr:last-child td { border-bottom: none; }
+.flyout-table td.pnl-pos { color: var(--green); }
+.flyout-table td.pnl-neg { color: var(--red); }
+.flyout-table td.dir-buy { color: var(--green); }
+.flyout-table td.dir-sell { color: var(--red); }
 
 .flyout-empty {
   padding: 40px 24px;
@@ -809,7 +817,7 @@ function openHistory(login) {
     </div>
     <div>
       <div class="flyout-stat-label">Net P&L</div>
-      <div class="flyout-stat-value ${pnlClass}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div>
+      <div class="flyout-stat-value ${pnlClass}">${totalPnl >= 0 ? '+' : '-'}$${Math.abs(totalPnl).toFixed(2)}</div>
     </div>
     <div>
       <div class="flyout-stat-label">Win Rate</div>
@@ -853,7 +861,7 @@ function openHistory(login) {
         <td>${t.vol.toFixed(2)}</td>
         <td>${t.op.toFixed(dig)}</td>
         <td>${t.cp.toFixed(dig)}</td>
-        <td class="${pnlCls}">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</td>
+        <td class="${pnlCls}">${t.pnl >= 0 ? '+' : '-'}$${Math.abs(t.pnl).toFixed(2)}</td>
       </tr>`;
   });
 
