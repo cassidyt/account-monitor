@@ -153,6 +153,33 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   border-bottom: 1px solid var(--bg-card-border);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s ease;
+}
+.card-header:hover { background: var(--bg-card-hover, #111827); }
+
+.card-header-left { display: flex; align-items: flex-start; gap: 10px; }
+.card-chevron {
+  margin-top: 3px;
+  width: 16px; height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+  color: var(--text-dim);
+}
+.card-chevron.collapsed { transform: rotate(-90deg); }
+
+.card-body {
+  overflow: hidden;
+  transition: grid-template-rows 0.3s ease;
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.card-body.collapsed {
+  grid-template-rows: 0fr;
+}
+.card-body-inner {
+  overflow: hidden;
 }
 .card-name {
   font-size: 16px;
@@ -471,6 +498,28 @@ if (!viewerKey) {
   }, 1000);
 }
 
+// ─── COLLAPSE STATE ─────────────────────────────────────
+const collapsedCards = new Set();
+
+function toggleCard(headerEl) {
+  const card = headerEl.closest('.account-card');
+  const login = card.dataset.login;
+  const body = card.querySelector('.card-body');
+  const chevron = card.querySelector('.card-chevron');
+
+  if (collapsedCards.has(login)) {
+    collapsedCards.delete(login);
+    body.classList.remove('collapsed');
+    chevron.classList.remove('collapsed');
+    headerEl.style.borderBottom = '';
+  } else {
+    collapsedCards.add(login);
+    body.classList.add('collapsed');
+    chevron.classList.add('collapsed');
+    headerEl.style.borderBottom = 'none';
+  }
+}
+
 // ─── RENDER ─────────────────────────────────────────────
 function renderAccounts(data) {
   const accounts = Object.values(data);
@@ -482,6 +531,16 @@ function renderAccounts(data) {
   html += '</div>';
 
   app.innerHTML = html;
+
+  // Restore collapse state
+  collapsedCards.forEach(login => {
+    const card = app.querySelector(`.account-card[data-login="${login}"]`);
+    if (card) {
+      card.querySelector('.card-body').classList.add('collapsed');
+      card.querySelector('.card-chevron').classList.add('collapsed');
+      card.querySelector('.card-header').style.borderBottom = 'none';
+    }
+  });
 }
 
 function renderCard(a) {
@@ -530,36 +589,43 @@ function renderCard(a) {
   }
 
   return `
-    <div class="account-card">
-      <div class="card-header">
-        <div>
-          <div class="card-name">${a.name} <span class="card-meta" style="font-size:13px;margin-left:4px">#${a.login}</span></div>
-          <div class="card-meta">${a.broker} · ${a.ccy}</div>
+    <div class="account-card" data-login="${a.login}">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-header-left">
+          <svg class="card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+          <div>
+            <div class="card-name">${a.name} <span class="card-meta" style="font-size:13px;margin-left:4px">#${a.login}</span></div>
+            <div class="card-meta">${a.broker} · ${a.ccy}</div>
+          </div>
         </div>
         <div class="card-status ${statusClass}">
           <div class="card-status-dot"></div>
           ${statusLabel}
         </div>
       </div>
-      <div class="metrics">
-        <div class="metric">
-          <div class="metric-label">Balance</div>
-          <div class="metric-value"><span class="currency">$</span>${formatNum(a.bal)}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Equity</div>
-          <div class="metric-value"><span class="currency">$</span>${formatNum(a.eq)}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Floating P&L</div>
-          <div class="metric-value ${floatClass}">${formatMoney(a.pnl)}</div>
-        </div>
-        <div class="metric">
-          <div class="metric-label">Float %</div>
-          <div class="metric-value ${floatClass}">${floatPct >= 0 ? '+' : ''}${floatPct.toFixed(2)}<span class="pct">%</span></div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Balance</div>
+              <div class="metric-value"><span class="currency">$</span>${formatNum(a.bal)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Equity</div>
+              <div class="metric-value"><span class="currency">$</span>${formatNum(a.eq)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Floating P&L</div>
+              <div class="metric-value ${floatClass}">${formatMoney(a.pnl)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Float %</div>
+              <div class="metric-value ${floatClass}">${floatPct >= 0 ? '+' : ''}${floatPct.toFixed(2)}<span class="pct">%</span></div>
+            </div>
+          </div>
+          ${positionsHTML}
         </div>
       </div>
-      ${positionsHTML}
     </div>`;
 }
 
