@@ -617,15 +617,8 @@ function renderCard(a) {
   const floatPct = a.bal !== 0 ? (a.pnl / a.bal * 100) : 0;
 
   let positionsHTML = '';
-  if (a.positions && a.positions.length > 0) {
-    positionsHTML = `
-      <div class="positions-section">
-        <div class="positions-header no-border" onclick="togglePositions(this, '${a.login}')">
-          <span>Open Positions (${a.positions.length})</span>
-          <svg class="pos-chevron collapsed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
-        </div>
-        <div class="positions-body collapsed">
-          <div class="positions-body-inner">
+  const posCount = a.positions ? a.positions.length : 0;
+  const posTableHTML = posCount > 0 ? `
             <table class="positions-table">
               <thead>
                 <tr>
@@ -649,14 +642,19 @@ function renderCard(a) {
                   </tr>
                 `).join('')}
               </tbody>
-            </table>
+            </table>` : `<div class="no-positions">No open positions</div>`;
+
+  positionsHTML = `
+      <div class="positions-section">
+        <div class="positions-header no-border" onclick="togglePositions(this, '${a.login}')">
+          <span>Open Positions: ${posCount}</span>
+          <svg class="pos-chevron collapsed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+        </div>
+        <div class="positions-body collapsed">
+          <div class="positions-body-inner">
+            ${posTableHTML}
           </div>
         </div>
-      </div>`;
-  } else {
-    positionsHTML = `
-      <div class="positions-section">
-        <div class="no-positions">No open positions</div>
       </div>`;
   }
 
