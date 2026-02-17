@@ -645,10 +645,111 @@ td.pnl-neg { color: var(--red); }
   border: 1px solid var(--bg-card-border);
   border-radius: 12px;
   overflow: hidden;
-  height: calc(100vh - 120px);
-  min-height: 400px;
+  height: 55vh;
+  min-height: 350px;
 }
 .market-chart iframe { width: 100%; height: 100%; border: none; }
+
+.calendar-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+.calendar-header {
+  padding: 16px 22px 12px;
+  border-bottom: 1px solid var(--bg-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.calendar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.calendar-title .red-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  flex-shrink: 0;
+}
+.calendar-updated {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.calendar-table { width: 100%; border-collapse: collapse; }
+.calendar-table th {
+  padding: 10px 16px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  text-align: left;
+  border-bottom: 1px solid var(--bg-card-border);
+}
+.calendar-table th:last-child { text-align: right; }
+.calendar-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text);
+  border-bottom: 1px solid var(--bg-card-border);
+}
+.calendar-table td:last-child { text-align: right; font-family: var(--mono); font-size: 12px; }
+.calendar-table tr:nth-child(even) { background: var(--bg-row-alt); }
+.calendar-table tr:hover td { background: var(--bg-row-hover); }
+.calendar-table tr:last-child td { border-bottom: none; }
+
+.calendar-day-label {
+  padding: 10px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  background: rgba(59, 130, 246, 0.05);
+  border-bottom: 1px solid var(--bg-card-border);
+}
+.calendar-table tr:hover .calendar-day-label { background: rgba(59, 130, 246, 0.05); }
+
+.calendar-time {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.calendar-event-title {
+  font-weight: 500;
+}
+.calendar-forecast {
+  color: var(--text-dim);
+}
+.calendar-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.calendar-footer {
+  padding: 12px 22px;
+  border-top: 1px solid var(--bg-card-border);
+  text-align: right;
+}
+.calendar-footer a {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.calendar-footer a:hover { color: #60a5fa; }
 
 /* --- State Screens --- */
 .state-screen {
@@ -711,7 +812,11 @@ td.pnl-neg { color: var(--red); }
   .flyout-table td { padding: 9px 8px; font-size: 11px; }
   .flyout-table th:first-child, .flyout-table td:first-child { padding-left: 16px; }
   .flyout-table th:last-child, .flyout-table td:last-child { padding-right: 16px; }
-  .market-chart { height: calc(100vh - 90px); min-height: 300px; }
+  .market-chart { height: 45vh; min-height: 280px; }
+  .calendar-card { margin-top: 14px; }
+  .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
+  .calendar-table td:last-child { font-size: 11px; }
 }
 </style>
 </head>
@@ -755,6 +860,16 @@ td.pnl-neg { color: var(--red); }
 
 <div class="main page" id="pageMarket">
   <div class="market-chart" id="tvChartContainer"></div>
+  <div class="calendar-card">
+    <div class="calendar-header">
+      <div class="calendar-title"><span class="red-dot"></span> High-Impact Events (USD)</div>
+      <div class="calendar-updated" id="calendarUpdated"></div>
+    </div>
+    <div id="calendarBody"><div class="calendar-empty">Loading calendar...</div></div>
+    <div class="calendar-footer">
+      <a href="https://www.forexfactory.com/calendar?week=this" target="_blank" rel="noopener">Full calendar on Forex Factory ↗</a>
+    </div>
+  </div>
 </div>
 
 <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
@@ -1002,6 +1117,61 @@ function loadTradingViewWidget() {
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash.replace('#', '') || 'accounts';
   navigateTo(hash);
+});
+
+// ─── ECONOMIC CALENDAR ──────────────────────────────────
+db.ref('market/calendar').on('value', (snapshot) => {
+  const data = snapshot.val();
+  const body = document.getElementById('calendarBody');
+  const updated = document.getElementById('calendarUpdated');
+
+  if (!data || !data.events || data.events.length === 0) {
+    body.innerHTML = '<div class="calendar-empty">No high-impact events this week.</div>';
+    updated.textContent = '';
+    return;
+  }
+
+  // Show last updated in local time
+  if (data.lastUpdated) {
+    const d = new Date(data.lastUpdated);
+    updated.textContent = 'Updated ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  // Group events by day (in user's local timezone)
+  const dayGroups = {};
+  data.events.forEach(e => {
+    const d = new Date(e.date);
+    const dayKey = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
+    if (!dayGroups[dayKey]) dayGroups[dayKey] = [];
+    dayGroups[dayKey].push(e);
+  });
+
+  let html = `<table class="calendar-table">
+    <thead><tr>
+      <th>Time</th>
+      <th>Event</th>
+      <th>Forecast / Prev</th>
+    </tr></thead>
+    <tbody>`;
+
+  for (const [day, events] of Object.entries(dayGroups)) {
+    html += `<tr><td colspan="3" class="calendar-day-label">${day}</td></tr>`;
+    events.forEach(e => {
+      const d = new Date(e.date);
+      const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      const forecast = e.forecast || '—';
+      const previous = e.previous || '—';
+      html += `
+        <tr>
+          <td><span class="calendar-time">${time}</span></td>
+          <td><span class="calendar-event-title">${e.title}</span></td>
+          <td><span class="calendar-forecast">${forecast}</span> / ${previous}</td>
+        </tr>`;
+    });
+  }
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
 });
 
 // ─── COLLAPSE STATE ─────────────────────────────────────
