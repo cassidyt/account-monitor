@@ -343,6 +343,164 @@ body {
   font-size: 13px;
 }
 
+/* --- History Button (on card header) --- */
+.history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px; height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--bg-card-border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.history-btn:hover {
+  background: var(--bg-row-hover);
+  border-color: var(--text-dim);
+  color: var(--text);
+}
+.history-btn svg { width: 14px; height: 14px; }
+
+.card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* --- History Flyout --- */
+.flyout-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.15s ease;
+}
+.flyout-overlay.show { display: flex; justify-content: center; align-items: flex-start; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+.flyout-panel {
+  width: 94%;
+  max-width: 700px;
+  max-height: 85vh;
+  margin-top: 5vh;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUp 0.2s ease;
+}
+
+.flyout-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--bg-card-border);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.flyout-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.flyout-subtitle {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+.flyout-close {
+  width: 32px; height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.flyout-close:hover {
+  background: var(--bg-row-hover);
+  color: var(--text);
+}
+
+.flyout-body {
+  overflow-y: auto;
+  flex: 1;
+  -webkit-overflow-scrolling: touch;
+}
+
+.flyout-summary {
+  padding: 14px 24px;
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--bg-card-border);
+  flex-shrink: 0;
+}
+.flyout-stat-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+.flyout-stat-value {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.flyout-table { width: 100%; border-collapse: collapse; }
+.flyout-table th {
+  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  text-align: right;
+  border-bottom: 1px solid var(--bg-card-border);
+  position: sticky;
+  top: 0;
+  background: var(--bg-card);
+  z-index: 1;
+}
+.flyout-table th:first-child { text-align: left; padding-left: 24px; }
+.flyout-table th:last-child { padding-right: 24px; }
+.flyout-table td {
+  padding: 10px 12px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text);
+  text-align: right;
+  border-bottom: 1px solid var(--bg-card-border);
+}
+.flyout-table td:first-child { text-align: left; padding-left: 24px; }
+.flyout-table td:last-child { padding-right: 24px; }
+.flyout-table tr:nth-child(even) { background: var(--bg-row-alt); }
+.flyout-table tr:hover td { background: var(--bg-row-hover); }
+.flyout-table tr:last-child td { border-bottom: none; }
+
+.flyout-empty {
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
 /* --- State Screens --- */
 .state-screen {
   display: flex;
@@ -384,6 +542,7 @@ body {
   }
   .card-name { font-size: 15px; }
   .card-status { align-self: flex-start; }
+  .card-header-right { align-self: flex-start; }
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .metric {
     padding: 12px 16px;
@@ -396,6 +555,13 @@ body {
   .positions-table th:first-child, .positions-table td:first-child { padding-left: 16px; }
   .positions-table th:last-child, .positions-table td:last-child { padding-right: 16px; }
   .info-popup { width: 250px; }
+  .flyout-panel { width: 100%; max-height: 90vh; margin-top: 0; border-radius: 0 0 14px 14px; }
+  .flyout-header { padding: 16px 16px 14px; }
+  .flyout-summary { padding: 12px 16px; gap: 16px; }
+  .flyout-table th { padding: 8px 8px; }
+  .flyout-table td { padding: 9px 8px; font-size: 11px; }
+  .flyout-table th:first-child, .flyout-table td:first-child { padding-left: 16px; }
+  .flyout-table th:last-child, .flyout-table td:last-child { padding-right: 16px; }
 }
 </style>
 </head>
@@ -434,6 +600,20 @@ body {
   </div>
 </div>
 
+<div class="flyout-overlay" id="historyFlyout">
+  <div class="flyout-panel">
+    <div class="flyout-header">
+      <div>
+        <div class="flyout-title" id="flyoutTitle">Trade History</div>
+        <div class="flyout-subtitle" id="flyoutSubtitle"></div>
+      </div>
+      <button class="flyout-close" onclick="closeFlyout()">&times;</button>
+    </div>
+    <div class="flyout-summary" id="flyoutSummary"></div>
+    <div class="flyout-body" id="flyoutBody"></div>
+  </div>
+</div>
+
 <script>
 // ─── CONFIG ─────────────────────────────────────────────
 const FIREBASE_CONFIG = {
@@ -462,6 +642,10 @@ document.addEventListener('click', () => {
   infoPopup.classList.remove('show');
 });
 
+// ─── DATA STORES (script-level scope) ───────────────────
+let accountsData = {};
+let historyData = {};
+
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
   document.title = 'Account Monitor';
@@ -480,7 +664,6 @@ if (!viewerKey) {
 
   // ─── LISTEN FOR DATA ────────────────────────────────────
   const viewerRef = db.ref('viewers/' + viewerKey);
-  let accountsData = {};
   let lastDataTime = null;
 
   viewerRef.on('value', (snapshot) => {
@@ -498,10 +681,25 @@ if (!viewerKey) {
       return;
     }
 
-    accountsData = data;
+    // Separate live accounts from history and snapshots
+    const accounts = {};
+    historyData = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (key.endsWith('_history')) {
+        // Strip "_history" suffix to get login number
+        const login = key.replace('_history', '');
+        historyData[login] = val;
+      } else if (key.endsWith('_snapshots')) {
+        // Store for future use, ignore for now
+      } else {
+        accounts[key] = val;
+      }
+    }
+
+    accountsData = accounts;
     lastDataTime = Date.now();
-    renderAccounts(data);
-    updateGlobalStatus(data);
+    renderAccounts(accounts);
+    updateGlobalStatus(accounts);
   });
 
   // ─── CONNECTIVITY ────────────────────────────────────────
@@ -569,6 +767,115 @@ function togglePositions(headerEl, login) {
     headerEl.classList.remove('no-border');
   }
 }
+
+// ─── HISTORY FLYOUT ──────────────────────────────────────
+function openHistory(login) {
+  const flyout = document.getElementById('historyFlyout');
+  const title = document.getElementById('flyoutTitle');
+  const subtitle = document.getElementById('flyoutSubtitle');
+  const summary = document.getElementById('flyoutSummary');
+  const body = document.getElementById('flyoutBody');
+
+  // Find account name
+  const acct = accountsData[login];
+  const name = acct ? acct.name : 'Account #' + login;
+
+  title.textContent = 'Trade History';
+  subtitle.textContent = name + ' #' + login;
+
+  const trades = historyData[login];
+
+  if (!trades || trades.length === 0) {
+    summary.innerHTML = '';
+    body.innerHTML = '<div class="flyout-empty">No trade history available yet.<br>History is sent when the v1.3 EA is running.</div>';
+    flyout.classList.add('show');
+    return;
+  }
+
+  // Show most recent trades first
+  const reversed = [...trades].reverse();
+
+  // Summary stats
+  const totalPnl = reversed.reduce((s, t) => s + t.pnl, 0);
+  const wins = reversed.filter(t => t.pnl > 0).length;
+  const losses = reversed.filter(t => t.pnl < 0).length;
+  const winRate = reversed.length > 0 ? (wins / reversed.length * 100) : 0;
+  const pnlClass = totalPnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+
+  summary.innerHTML = `
+    <div>
+      <div class="flyout-stat-label">Trades</div>
+      <div class="flyout-stat-value">${reversed.length}</div>
+    </div>
+    <div>
+      <div class="flyout-stat-label">Net P&L</div>
+      <div class="flyout-stat-value ${pnlClass}">${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)}</div>
+    </div>
+    <div>
+      <div class="flyout-stat-label">Win Rate</div>
+      <div class="flyout-stat-value">${winRate.toFixed(0)}%</div>
+    </div>
+    <div>
+      <div class="flyout-stat-label">W / L</div>
+      <div class="flyout-stat-value"><span class="pnl-pos">${wins}</span> / <span class="pnl-neg">${losses}</span></div>
+    </div>
+  `;
+
+  // Format close time for display (just time portion if today, else date + time)
+  function fmtTime(t) {
+    if (!t) return '—';
+    // t = "2026.02.17 18:31:42"
+    const parts = t.split(' ');
+    if (parts.length < 2) return t;
+    return parts[0].replace(/\./g, '/') + ' ' + parts[1].substring(0, 5);
+  }
+
+  let tableHTML = `
+    <table class="flyout-table">
+      <thead><tr>
+        <th>Closed</th>
+        <th>Dir</th>
+        <th>Vol</th>
+        <th>Open</th>
+        <th>Close</th>
+        <th>P&L</th>
+      </tr></thead>
+      <tbody>`;
+
+  reversed.forEach(t => {
+    const dirClass = t.dir === 'BUY' ? 'dir-buy' : 'dir-sell';
+    const pnlCls = t.pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+    const dig = t.op > 100 ? 2 : 5;
+    tableHTML += `
+      <tr>
+        <td>${fmtTime(t.ct)}</td>
+        <td class="${dirClass}">${t.dir}</td>
+        <td>${t.vol.toFixed(2)}</td>
+        <td>${t.op.toFixed(dig)}</td>
+        <td>${t.cp.toFixed(dig)}</td>
+        <td class="${pnlCls}">${t.pnl >= 0 ? '+' : ''}$${t.pnl.toFixed(2)}</td>
+      </tr>`;
+  });
+
+  tableHTML += '</tbody></table>';
+  body.innerHTML = tableHTML;
+
+  flyout.classList.add('show');
+}
+
+function closeFlyout() {
+  document.getElementById('historyFlyout').classList.remove('show');
+}
+
+// Close flyout on overlay click (not panel click)
+document.getElementById('historyFlyout').addEventListener('click', (e) => {
+  if (e.target === e.currentTarget) closeFlyout();
+});
+
+// Close flyout on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeFlyout();
+});
 
 // ─── RENDER ─────────────────────────────────────────────
 function renderAccounts(data) {
@@ -667,9 +974,14 @@ function renderCard(a) {
             <div class="card-meta">${a.broker} · ${a.ccy}</div>
           </div>
         </div>
-        <div class="card-status ${statusClass}">
-          <div class="card-status-dot"></div>
-          ${statusLabel}
+        <div class="card-header-right">
+          <div class="history-btn" onclick="event.stopPropagation(); openHistory('${a.login}')" title="Trade History">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="card-status ${statusClass}">
+            <div class="card-status-dot"></div>
+            ${statusLabel}
+          </div>
         </div>
       </div>
       <div class="card-body">
