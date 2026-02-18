@@ -256,6 +256,64 @@ body {
 /* --- Main --- */
 .main { padding: 28px 32px; max-width: 1400px; margin: 0 auto; }
 
+/* --- Accounts Summary Card --- */
+.summary-card {
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+}
+.summary-card-header {
+  padding: 14px 22px 0;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+}
+.summary-card-body {
+  display: flex;
+  padding: 14px 22px 18px;
+  gap: 32px;
+}
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.summary-item-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.3px;
+}
+.summary-item-value {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--mono);
+}
+.summary-item-value .currency {
+  font-size: 15px;
+  color: var(--text-dim);
+  margin-right: 2px;
+}
+.summary-item-value .pct {
+  font-size: 14px;
+  margin-left: 1px;
+}
+.summary-pnl-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.summary-pnl-pct {
+  font-size: 14px;
+  font-family: var(--mono);
+}
+.summary-item-value.positive, .summary-pnl-pct.positive { color: var(--green); }
+.summary-item-value.negative, .summary-pnl-pct.negative { color: var(--red); }
+
 /* --- Account Cards Grid --- */
 .accounts-grid {
   display: grid;
@@ -782,6 +840,10 @@ td.pnl-neg { color: var(--red); }
   .header-right { font-size: 11px; }
   .main { padding: 14px 12px; }
   .accounts-grid { grid-template-columns: 1fr; gap: 14px; }
+  .summary-card { margin-bottom: 18px; }
+  .summary-card-body { gap: 24px; padding: 12px 16px 16px; }
+  .summary-item-value { font-size: 18px; }
+  .summary-pnl-pct { font-size: 12px; }
   .card-header {
     flex-direction: column;
     gap: 8px;
@@ -1339,10 +1401,74 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── RENDER ─────────────────────────────────────────────
+// --- Calculate today's realized P&L from EA trade history ---
+// "Today" = since midnight in the user's local timezone
+function calcTodayPnl() {
+  let total = 0;
+
+  // User's local "today" as YYYY-MM-DD
+  const localToday = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
+
+  for (const [login, histRaw] of Object.entries(historyData)) {
+    let trades, gmtOff = 7200; // Default GMT+2 (Coinexx)
+    if (Array.isArray(histRaw)) {
+      trades = histRaw;
+    } else if (histRaw && histRaw.trades) {
+      trades = histRaw.trades;
+      gmtOff = histRaw.gmtOff || 7200;
+    } else {
+      continue;
+    }
+
+    for (const t of trades) {
+      if (!t.ct) continue;
+      // ct = "2026.02.18 18:31:07" (broker server time)
+      // Convert to UTC: parse as if UTC, then subtract gmtOff
+      const iso = t.ct.replace(/\./g, '-').replace(' ', 'T') + 'Z';
+      const utcMs = new Date(iso).getTime() - (gmtOff * 1000);
+      // Check if this UTC timestamp falls on "today" in user's local timezone
+      const tradeLocalDate = new Date(utcMs).toLocaleDateString('en-CA');
+      if (tradeLocalDate === localToday) {
+        total += (t.pnl || 0) + (t.sw || 0) + (t.cm || 0);
+      }
+    }
+  }
+
+  return total;
+}
+
 function renderAccounts(data) {
   const accounts = Object.values(data);
 
-  let html = '<div class="accounts-grid">';
+  // --- Summary calculations ---
+  let totalBal = 0;
+  accounts.forEach(a => { totalBal += a.bal || 0; });
+
+  // Today's P&L from EA trade history (real-time, updates on every close)
+  const todayPnl = calcTodayPnl();
+  const startOfDayBal = totalBal - todayPnl;
+  const todayPct = startOfDayBal > 0 ? (todayPnl / startOfDayBal * 100) : 0;
+  const pnlClass = todayPnl >= 0 ? 'positive' : 'negative';
+
+  let html = `
+    <div class="summary-card">
+      <div class="summary-card-header">Accounts Summary</div>
+      <div class="summary-card-body">
+        <div class="summary-item">
+          <div class="summary-item-label">Total Balance</div>
+          <div class="summary-item-value"><span class="currency">$</span>${formatNum(totalBal)}</div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">Today's P&L</div>
+          <div class="summary-pnl-row">
+            <div class="summary-item-value ${pnlClass}">${todayPnl >= 0 ? '+' : '-'}$${formatNum(Math.abs(todayPnl))}</div>
+            <div class="summary-pnl-pct ${pnlClass}">${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+
+  html += '<div class="accounts-grid">';
   accounts.forEach(acct => {
     html += renderCard(acct);
   });
