@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Account Monitor</title>
+<title>Gold Bot Dashboard</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
@@ -193,8 +193,7 @@ body {
 .header-title {
   font-size: 15px;
   font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
+  letter-spacing: 0.3px;
   color: var(--text-dim);
 }
 .header-right {
@@ -829,7 +828,7 @@ td.pnl-neg { color: var(--red); }
       <span></span><span></span><span></span>
     </button>
     <div class="header-logo" id="globalStatus"></div>
-    <div class="header-title">Account Monitor</div>
+    <div class="header-title">Gold Bot Dashboard</div>
   </div>
   <div class="header-right">
     <span id="lastUpdate">Connecting...</span>
@@ -943,7 +942,7 @@ let historyData = {};
 
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
-  document.title = 'Account Monitor';
+  document.title = 'Gold Bot Dashboard';
   app.innerHTML = `
     <div class="state-screen">
       <div class="state-icon">🔑</div>
@@ -955,7 +954,7 @@ if (!viewerKey) {
       </div>
     </div>`;
 } else {
-  document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Account Monitor';
+  document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
 
   // ─── LISTEN FOR DATA ────────────────────────────────────
   const viewerRef = db.ref('viewers/' + viewerKey);
@@ -1229,11 +1228,22 @@ function openHistory(login) {
   title.textContent = 'Trade History';
   subtitle.textContent = name + ' #' + login;
 
-  const trades = historyData[login];
+  const histRaw = historyData[login];
+
+  // Support both old format (array) and new format ({gmtOff, trades})
+  let trades, gmtOff = 0;
+  if (Array.isArray(histRaw)) {
+    trades = histRaw;
+  } else if (histRaw && histRaw.trades) {
+    trades = histRaw.trades;
+    gmtOff = histRaw.gmtOff || 0;  // seconds east of UTC
+  } else {
+    trades = null;
+  }
 
   if (!trades || trades.length === 0) {
     summary.innerHTML = '';
-    body.innerHTML = '<div class="flyout-empty">No trade history available yet.<br>History is sent when the v1.3 EA is running.</div>';
+    body.innerHTML = '<div class="flyout-empty">No trade history available yet.<br>History is sent when the v1.3+ EA is running.</div>';
     flyout.classList.add('show');
     return;
   }
@@ -1267,13 +1277,15 @@ function openHistory(login) {
     </div>
   `;
 
-  // Format close time for display (just time portion if today, else date + time)
+  // Convert server time to user's local time using gmtOff from EA
   function fmtTime(t) {
     if (!t) return '—';
-    // t = "2026.02.17 18:31:42"
-    const parts = t.split(' ');
-    if (parts.length < 2) return t;
-    return parts[0].replace(/\./g, '/') + ' ' + parts[1].substring(0, 5);
+    // t = "2026.02.17 18:31:42" (server time, offset by gmtOff seconds from UTC)
+    const iso = t.replace(/\./g, '-').replace(' ', 'T') + 'Z';
+    const utcMs = new Date(iso).getTime() - (gmtOff * 1000);
+    const local = new Date(utcMs);
+    return local.toLocaleDateString(undefined, { month: '2-digit', day: '2-digit' }) + ' ' +
+           local.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
 
   let tableHTML = `
