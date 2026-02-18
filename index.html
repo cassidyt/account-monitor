@@ -641,8 +641,6 @@ td.pnl-neg { color: var(--red); }
 
 .market-chart {
   background: var(--bg-card);
-  border: 1px solid var(--bg-card-border);
-  border-radius: 12px;
   overflow: hidden;
   height: 55vh;
   min-height: 350px;
@@ -858,10 +856,15 @@ td.pnl-neg { color: var(--red); }
 </div>
 
 <div class="main page" id="pageMarket">
-  <div class="market-chart" id="tvChartContainer"></div>
+  <div class="calendar-card">
+    <div class="calendar-header" style="border-bottom:none; padding-bottom:0;">
+      <div class="calendar-title">Gold / US Dollar (XAU/USD)</div>
+    </div>
+    <div class="market-chart" id="tvChartContainer"></div>
+  </div>
   <div class="calendar-card">
     <div class="calendar-header">
-      <div class="calendar-title"><span class="red-dot"></span> High-Impact Events (USD)</div>
+      <div class="calendar-title"><span class="red-dot"></span> U.S. Economic News This Week</div>
       <div class="calendar-updated" id="calendarUpdated"></div>
     </div>
     <div id="calendarBody"><div class="calendar-empty">Loading calendar...</div></div>
