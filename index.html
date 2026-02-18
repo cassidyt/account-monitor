@@ -841,8 +841,9 @@ td.pnl-neg { color: var(--red); }
   .main { padding: 14px 12px; }
   .accounts-grid { grid-template-columns: 1fr; gap: 14px; }
   .summary-card { margin-bottom: 18px; }
-  .summary-card-body { gap: 24px; padding: 12px 16px 16px; }
-  .summary-item-value { font-size: 18px; }
+  .summary-card-body { flex-wrap: wrap; gap: 16px 24px; padding: 12px 16px 16px; }
+  .summary-item { min-width: calc(50% - 12px); }
+  .summary-item-value { font-size: 17px; }
   .summary-pnl-pct { font-size: 12px; }
   .card-header {
     flex-direction: column;
@@ -1004,6 +1005,8 @@ document.addEventListener('click', () => {
 // ─── DATA STORES (script-level scope) ───────────────────
 let accountsData = {};
 let historyData = {};
+let dailyHistory = {};    // { login: { "2025-08-15": {bal,pnl,cnt,w,l}, ... } }
+let dailyHistoryLoaded = false;
 
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
@@ -1059,6 +1062,12 @@ if (!viewerKey) {
     lastDataTime = Date.now();
     renderAccounts(accounts);
     updateGlobalStatus(accounts);
+
+    // Load daily history from /history/{login}/daily for 7D/30D stats
+    if (!dailyHistoryLoaded) {
+      dailyHistoryLoaded = true;
+      loadDailyHistory(Object.keys(accounts));
+    }
   });
 
   // ─── CONNECTIVITY ────────────────────────────────────────
@@ -1401,6 +1410,81 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ─── RENDER ─────────────────────────────────────────────
+// --- Load daily history from /history/{login}/daily ---
+function loadDailyHistory(logins) {
+  logins.forEach(login => {
+    db.ref('history/' + login + '/daily').on('value', (snap) => {
+      const val = snap.val();
+      if (val) {
+        dailyHistory[login] = val;
+        // Re-render to update 7D/30D stats
+        if (Object.keys(accountsData).length > 0) {
+          renderAccounts(accountsData);
+        }
+      }
+    });
+  });
+}
+
+// --- Calculate P&L for a period from daily history ---
+// period = number of prior days (e.g. 7 = yesterday back 7 days)
+// Uses user's local timezone for "yesterday"
+function calcPeriodPnl(period) {
+  let totalPnl = 0;
+  let hasData = false;
+
+  // Build date range in user's local timezone: yesterday back N days
+  const today = new Date();
+  const dates = [];
+  for (let i = 1; i <= period; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    // Format as YYYY-MM-DD to match daily ledger keys
+    dates.push(d.toLocaleDateString('en-CA'));
+  }
+
+  for (const [login, daily] of Object.entries(dailyHistory)) {
+    if (!daily) continue;
+    for (const dateKey of dates) {
+      if (daily[dateKey]) {
+        totalPnl += daily[dateKey].pnl || 0;
+        hasData = true;
+      }
+    }
+  }
+
+  return hasData ? totalPnl : null;  // null = no data yet
+}
+
+// --- Calculate starting balance for a period (for % calc) ---
+function calcPeriodStartBal(period) {
+  // Find the balance at end of the day BEFORE the period started
+  // Search backwards up to 5 extra days in case of weekends/gaps
+  let totalBal = 0;
+  let found = false;
+
+  for (let offset = period + 1; offset <= period + 5; offset++) {
+    const d = new Date();
+    d.setDate(d.getDate() - offset);
+    const dateKey = d.toLocaleDateString('en-CA');
+
+    totalBal = 0;
+    found = false;
+
+    for (const [login, daily] of Object.entries(dailyHistory)) {
+      if (!daily) continue;
+      if (daily[dateKey]) {
+        totalBal += daily[dateKey].bal || 0;
+        found = true;
+      }
+    }
+
+    if (found) break;
+  }
+
+  return found ? totalBal : null;
+}
+
 // --- Calculate today's realized P&L from EA trade history ---
 // "Today" = since midnight in the user's local timezone
 function calcTodayPnl() {
@@ -1450,6 +1534,30 @@ function renderAccounts(data) {
   const todayPct = startOfDayBal > 0 ? (todayPnl / startOfDayBal * 100) : 0;
   const pnlClass = todayPnl >= 0 ? 'positive' : 'negative';
 
+  // 7-day and 30-day P&L from daily history (Python sync)
+  const pnl7d = calcPeriodPnl(7);
+  const pnl30d = calcPeriodPnl(30);
+  const startBal7d = calcPeriodStartBal(7);
+  const startBal30d = calcPeriodStartBal(30);
+  const pct7d = (pnl7d !== null && startBal7d) ? (pnl7d / startBal7d * 100) : null;
+  const pct30d = (pnl30d !== null && startBal30d) ? (pnl30d / startBal30d * 100) : null;
+  const pnl7dClass = pnl7d !== null ? (pnl7d >= 0 ? 'positive' : 'negative') : '';
+  const pnl30dClass = pnl30d !== null ? (pnl30d >= 0 ? 'positive' : 'negative') : '';
+
+  const fmt7d = pnl7d !== null
+    ? `<div class="summary-pnl-row">
+         <div class="summary-item-value ${pnl7dClass}">${pnl7d >= 0 ? '+' : '-'}$${formatNum(Math.abs(pnl7d))}</div>
+         <div class="summary-pnl-pct ${pnl7dClass}">${pct7d !== null ? (pct7d >= 0 ? '+' : '') + pct7d.toFixed(2) + '%' : '—'}</div>
+       </div>`
+    : `<div class="summary-item-value" style="color:var(--text-dim)">—</div>`;
+
+  const fmt30d = pnl30d !== null
+    ? `<div class="summary-pnl-row">
+         <div class="summary-item-value ${pnl30dClass}">${pnl30d >= 0 ? '+' : '-'}$${formatNum(Math.abs(pnl30d))}</div>
+         <div class="summary-pnl-pct ${pnl30dClass}">${pct30d !== null ? (pct30d >= 0 ? '+' : '') + pct30d.toFixed(2) + '%' : '—'}</div>
+       </div>`
+    : `<div class="summary-item-value" style="color:var(--text-dim)">—</div>`;
+
   let html = `
     <div class="summary-card">
       <div class="summary-card-header">Accounts Summary</div>
@@ -1464,6 +1572,14 @@ function renderAccounts(data) {
             <div class="summary-item-value ${pnlClass}">${todayPnl >= 0 ? '+' : '-'}$${formatNum(Math.abs(todayPnl))}</div>
             <div class="summary-pnl-pct ${pnlClass}">${todayPct >= 0 ? '+' : ''}${todayPct.toFixed(2)}%</div>
           </div>
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">Last 7 Days' P&L</div>
+          ${fmt7d}
+        </div>
+        <div class="summary-item">
+          <div class="summary-item-label">Last 30 Days' P&L</div>
+          ${fmt30d}
         </div>
       </div>
     </div>`;
