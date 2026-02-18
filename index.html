@@ -940,8 +940,21 @@ td.pnl-neg { color: var(--red); }
 }
 .analytics-controls-left {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   flex-wrap: wrap;
+}
+.analytics-control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.analytics-control-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  padding-left: 2px;
 }
 .analytics-toggle {
   display: flex;
@@ -1211,25 +1224,35 @@ td.pnl-neg { color: var(--red); }
     </div>
     <div class="analytics-controls">
       <div class="analytics-controls-left">
-        <div class="analytics-toggle" id="periodToggle">
-          <button class="active" data-period="daily">Daily</button>
-          <button data-period="weekly">Weekly</button>
-          <button data-period="monthly">Monthly</button>
+        <div class="analytics-control-group">
+          <div class="analytics-control-label">Interval</div>
+          <div class="analytics-toggle" id="periodToggle">
+            <button class="active" data-period="daily">Daily</button>
+            <button data-period="weekly">Weekly</button>
+            <button data-period="monthly">Monthly</button>
+          </div>
         </div>
-        <div class="analytics-toggle" id="rangeToggle">
-          <button data-range="30">1M</button>
-          <button data-range="90">3M</button>
-          <button data-range="180">6M</button>
-          <button data-range="ytd">YTD</button>
-          <button class="active" data-range="all">All</button>
+        <div class="analytics-control-group">
+          <div class="analytics-control-label">Range</div>
+          <div class="analytics-toggle" id="rangeToggle">
+            <button data-range="30">1M</button>
+            <button data-range="90">3M</button>
+            <button data-range="180">6M</button>
+            <button data-range="365">1Y</button>
+            <button data-range="ytd">YTD</button>
+            <button class="active" data-range="all">All</button>
+          </div>
         </div>
       </div>
-      <div class="acct-dropdown-wrap">
+      <div class="analytics-control-group">
+        <div class="analytics-control-label">Accounts</div>
+        <div class="acct-dropdown-wrap">
         <button class="acct-dropdown-btn" id="acctDropdownBtn" onclick="toggleAcctDropdown()">
           <span id="acctDropdownLabel">Accounts (0/0)</span>
           <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,6 8,10 12,6"/></svg>
         </button>
         <div class="acct-dropdown" id="acctDropdown"></div>
+        </div>
       </div>
     </div>
     <div class="chart-wrap">
