@@ -851,6 +851,59 @@ td.pnl-neg { color: var(--red); }
 }
 .calendar-footer a:hover { color: #60a5fa; }
 
+/* --- News Section --- */
+.news-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  cursor: pointer;
+  user-select: none;
+}
+.news-header:hover { background: rgba(255,255,255,0.02); }
+.news-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.news-chevron {
+  width: 14px; height: 14px;
+  transition: transform 0.2s ease;
+  color: var(--text-dim);
+}
+.news-chevron.expanded { transform: rotate(90deg); }
+.news-body {
+  display: none;
+  border-top: 1px solid var(--bg-card-border);
+}
+.news-body.expanded { display: block; }
+.news-item {
+  display: block;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--bg-card-border);
+  text-decoration: none;
+  transition: background 0.15s;
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:hover { background: rgba(255,255,255,0.03); }
+.news-item-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.5;
+}
+.news-item-meta {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.news-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
 /* --- State Screens --- */
 .state-screen {
   display: flex;
@@ -991,6 +1044,16 @@ td.pnl-neg { color: var(--red); }
     <div class="calendar-footer">
       <a href="https://www.forexfactory.com/calendar?month=this" target="_blank" rel="noopener">Full calendar on Forex Factory ↗</a>
     </div>
+  </div>
+  <div class="calendar-card">
+    <div class="news-header" onclick="toggleNews()">
+      <div class="news-header-left">
+        <svg class="news-chevron" id="newsChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+        <div class="calendar-title">Market News</div>
+      </div>
+      <div class="calendar-updated" id="newsUpdated"></div>
+    </div>
+    <div class="news-body" id="newsBody"></div>
   </div>
 </div>
 
@@ -1305,6 +1368,60 @@ db.ref('market/calendar').on('value', (snapshot) => {
   html += '</tbody></table>';
   body.innerHTML = html;
 });
+
+// ─── NEWS FEED (lazy-loaded on expand) ─────────────────
+let newsLoaded = false;
+let newsExpanded = false;
+
+function toggleNews() {
+  const chevron = document.getElementById('newsChevron');
+  const body = document.getElementById('newsBody');
+  newsExpanded = !newsExpanded;
+
+  if (newsExpanded) {
+    chevron.classList.add('expanded');
+    body.classList.add('expanded');
+    if (!newsLoaded) {
+      newsLoaded = true;
+      body.innerHTML = '<div class="news-empty">Loading...</div>';
+      loadNews();
+    }
+  } else {
+    chevron.classList.remove('expanded');
+    body.classList.remove('expanded');
+  }
+}
+
+function loadNews() {
+  db.ref('market/news').on('value', (snapshot) => {
+    const data = snapshot.val();
+    const body = document.getElementById('newsBody');
+    const updated = document.getElementById('newsUpdated');
+
+    if (!data || !data.articles || data.articles.length === 0) {
+      body.innerHTML = '<div class="news-empty">No news articles available.</div>';
+      return;
+    }
+
+    if (data.lastUpdated) {
+      const d = new Date(data.lastUpdated);
+      updated.textContent = 'Updated ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    }
+
+    let html = '';
+    data.articles.forEach(a => {
+      const d = new Date(a.date.replace(' ', 'T') + 'Z');
+      const timeStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      html += `
+        <a class="news-item" href="${a.link}" target="_blank" rel="noopener">
+          <div class="news-item-title">${a.title}</div>
+          <div class="news-item-meta">${timeStr}${a.author ? ' · ' + a.author : ''}</div>
+        </a>`;
+    });
+
+    body.innerHTML = html;
+  });
+}
 
 // ─── COLLAPSE STATE ─────────────────────────────────────
 const collapsedCards = new Set();
