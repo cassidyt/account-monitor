@@ -9,6 +9,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -927,6 +928,145 @@ td.pnl-neg { color: var(--red); }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* --- Analytics Page --- */
+.analytics-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--bg-card-border);
+}
+.analytics-controls-left {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.analytics-toggle {
+  display: flex;
+  background: var(--bg-main);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--bg-card-border);
+}
+.analytics-toggle button {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.analytics-toggle button:hover { color: var(--text); }
+.analytics-toggle button.active {
+  background: var(--accent);
+  color: #000;
+}
+.acct-dropdown-wrap {
+  position: relative;
+}
+.acct-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--bg-card-border);
+  background: var(--bg-main);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.acct-dropdown-btn:hover { border-color: var(--text-dim); color: var(--text); }
+.acct-dropdown-btn.open { border-color: var(--accent); color: var(--accent); }
+.acct-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 240px;
+  background: var(--bg-card);
+  border: 1px solid var(--bg-card-border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+  z-index: 500;
+  padding: 6px 0;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.acct-dropdown.open { display: block; }
+.acct-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-size: 13px;
+  color: var(--text);
+  user-select: none;
+}
+.acct-dropdown-item:hover { background: rgba(255,255,255,0.03); }
+.acct-dropdown-item.separator {
+  border-bottom: 1px solid var(--bg-card-border);
+  margin-bottom: 2px;
+}
+.acct-dd-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.acct-dropdown-item.active .acct-dd-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+.acct-dd-check svg {
+  width: 10px;
+  height: 10px;
+  stroke: #000;
+  opacity: 0;
+}
+.acct-dropdown-item.active .acct-dd-check svg { opacity: 1; }
+.acct-dd-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.acct-dd-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chart-wrap {
+  padding: 16px 12px 12px;
+  position: relative;
+  height: 420px;
+}
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
 /* --- Responsive --- */
 @media (max-width: 640px) {
   .header {
@@ -981,6 +1121,13 @@ td.pnl-neg { color: var(--red); }
   .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
   .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
   .calendar-table td:last-child { font-size: 11px; }
+  .analytics-controls { padding: 12px 16px; gap: 10px; flex-direction: column; align-items: stretch; }
+  .analytics-controls-left { flex-direction: column; }
+  .analytics-toggle button { font-size: 11px; padding: 5px 10px; }
+  .acct-dropdown-wrap { width: 100%; }
+  .acct-dropdown-btn { width: 100%; justify-content: space-between; }
+  .acct-dropdown { right: auto; left: 0; min-width: 100%; }
+  .chart-wrap { height: 300px; padding: 12px 8px 8px; }
 }
 
 @media (min-width: 960px) {
@@ -1057,6 +1204,40 @@ td.pnl-neg { color: var(--red); }
   </div>
 </div>
 
+<div class="main page" id="pageAnalytics">
+  <div class="calendar-card">
+    <div class="calendar-header" style="border-bottom:none; padding-bottom:0;">
+      <div class="calendar-title">Account Growth</div>
+    </div>
+    <div class="analytics-controls">
+      <div class="analytics-controls-left">
+        <div class="analytics-toggle" id="periodToggle">
+          <button class="active" data-period="daily">Daily</button>
+          <button data-period="weekly">Weekly</button>
+          <button data-period="monthly">Monthly</button>
+        </div>
+        <div class="analytics-toggle" id="rangeToggle">
+          <button data-range="30">1M</button>
+          <button data-range="90">3M</button>
+          <button data-range="180">6M</button>
+          <button data-range="ytd">YTD</button>
+          <button class="active" data-range="all">All</button>
+        </div>
+      </div>
+      <div class="acct-dropdown-wrap">
+        <button class="acct-dropdown-btn" id="acctDropdownBtn" onclick="toggleAcctDropdown()">
+          <span id="acctDropdownLabel">Accounts (0/0)</span>
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4,6 8,10 12,6"/></svg>
+        </button>
+        <div class="acct-dropdown" id="acctDropdown"></div>
+      </div>
+    </div>
+    <div class="chart-wrap">
+      <canvas id="growthChart"></canvas>
+    </div>
+  </div>
+</div>
+
 <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
 <div class="nav-panel" id="navPanel" style="display:none">
   <div class="nav-header">
@@ -1071,6 +1252,10 @@ td.pnl-neg { color: var(--red); }
     <div class="nav-item" data-page="market" onclick="navigateTo('market')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       Market
+    </div>
+    <div class="nav-item" data-page="analytics" onclick="navigateTo('analytics')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><polyline points="7 14 12 9 16 13 21 8"/></svg>
+      Analytics
     </div>
   </div>
   <div class="nav-footer">
@@ -1233,6 +1418,7 @@ document.addEventListener('keydown', (e) => {
 
 // ─── PAGE ROUTING ───────────────────────────────────────
 let tvWidgetLoaded = false;
+let analyticsLoaded = false;
 
 function navigateTo(page) {
   // Hide all pages
@@ -1250,6 +1436,12 @@ function navigateTo(page) {
   if (page === 'market' && !tvWidgetLoaded) {
     loadTradingViewWidget();
     tvWidgetLoaded = true;
+  }
+
+  // Lazy-load Analytics chart on first visit
+  if (page === 'analytics' && !analyticsLoaded) {
+    analyticsLoaded = true;
+    initAnalytics();
   }
 
   // Update hash
@@ -1420,6 +1612,432 @@ function loadNews() {
     });
 
     body.innerHTML = html;
+  });
+}
+
+// ─── ANALYTICS ──────────────────────────────────────────
+const CHART_COLORS = [
+  '#e0bc68', // gold
+  '#60a5fa', // blue
+  '#34d399', // green
+  '#f472b6', // pink
+  '#a78bfa', // purple
+  '#fb923c', // orange
+  '#38bdf8', // sky
+  '#f87171', // red
+  '#4ade80', // lime
+  '#e879f9', // fuchsia
+];
+const COMBINED_COLOR = '#ffffff';
+
+let growthChart = null;
+let analyticsAccounts = {};  // { login: { name, daily } }
+let activeAccounts = new Set();
+let showCombined = false;
+let currentPeriod = 'daily';
+let currentRange = 'all';
+
+function initAnalytics() {
+  analyticsAccounts = {};
+  for (const [login, daily] of Object.entries(dailyHistory)) {
+    const acct = accountsData[login];
+    const name = acct ? acct.name : login;
+    analyticsAccounts[login] = { name, daily };
+  }
+
+  if (Object.keys(analyticsAccounts).length === 0) {
+    document.querySelector('.chart-wrap').innerHTML = '<div class="chart-empty">Waiting for data...</div>';
+    const checkInterval = setInterval(() => {
+      for (const [login, daily] of Object.entries(dailyHistory)) {
+        const acct = accountsData[login];
+        analyticsAccounts[login] = { name: acct ? acct.name : login, daily };
+      }
+      if (Object.keys(analyticsAccounts).length > 0) {
+        clearInterval(checkInterval);
+        buildAnalyticsUI();
+      }
+    }, 500);
+    return;
+  }
+
+  buildAnalyticsUI();
+}
+
+function buildAnalyticsUI() {
+  const logins = Object.keys(analyticsAccounts);
+  activeAccounts = new Set(logins);
+  showCombined = false;
+
+  // Build dropdown items
+  buildAcctDropdown();
+  updateDropdownLabel();
+
+  // Period toggle listeners
+  document.querySelectorAll('#periodToggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#periodToggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPeriod = btn.dataset.period;
+      renderChart();
+    });
+  });
+
+  // Range toggle listeners
+  document.querySelectorAll('#rangeToggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#rangeToggle button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentRange = btn.dataset.range;
+      renderChart();
+    });
+  });
+
+  renderChart();
+}
+
+function buildAcctDropdown() {
+  const dd = document.getElementById('acctDropdown');
+  const logins = Object.keys(analyticsAccounts);
+  const checkSvg = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="2,6 5,9 10,3"/></svg>';
+
+  let html = '';
+
+  // All toggle
+  html += `<div class="acct-dropdown-item active" data-login="all" onclick="toggleAcctItem(this)">
+    <div class="acct-dd-check">${checkSvg}</div>
+    <div class="acct-dd-name">All Accounts</div>
+  </div>`;
+
+  // Combined toggle
+  html += `<div class="acct-dropdown-item separator" data-login="combined" onclick="toggleAcctItem(this)">
+    <div class="acct-dd-check">${checkSvg}</div>
+    <div class="acct-dd-color" style="background:${COMBINED_COLOR}"></div>
+    <div class="acct-dd-name">Combined</div>
+  </div>`;
+
+  // Individual accounts
+  logins.forEach((login, i) => {
+    const name = analyticsAccounts[login].name;
+    const color = CHART_COLORS[i % CHART_COLORS.length];
+    html += `<div class="acct-dropdown-item active" data-login="${login}" onclick="toggleAcctItem(this)">
+      <div class="acct-dd-check">${checkSvg}</div>
+      <div class="acct-dd-color" style="background:${color}"></div>
+      <div class="acct-dd-name">${name}</div>
+    </div>`;
+  });
+
+  dd.innerHTML = html;
+}
+
+function toggleAcctDropdown() {
+  const btn = document.getElementById('acctDropdownBtn');
+  const dd = document.getElementById('acctDropdown');
+  const isOpen = dd.classList.contains('open');
+
+  if (isOpen) {
+    dd.classList.remove('open');
+    btn.classList.remove('open');
+  } else {
+    dd.classList.add('open');
+    btn.classList.add('open');
+  }
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const wrap = document.querySelector('.acct-dropdown-wrap');
+  if (wrap && !wrap.contains(e.target)) {
+    document.getElementById('acctDropdown')?.classList.remove('open');
+    document.getElementById('acctDropdownBtn')?.classList.remove('open');
+  }
+});
+
+function toggleAcctItem(el) {
+  const login = el.dataset.login;
+  const logins = Object.keys(analyticsAccounts);
+
+  if (login === 'all') {
+    const wasActive = el.classList.contains('active');
+    if (wasActive) {
+      activeAccounts.clear();
+      document.querySelectorAll('.acct-dropdown-item[data-login]').forEach(item => {
+        if (item.dataset.login !== 'combined') item.classList.remove('active');
+      });
+    } else {
+      activeAccounts = new Set(logins);
+      document.querySelectorAll('.acct-dropdown-item[data-login]').forEach(item => {
+        if (item.dataset.login !== 'combined') item.classList.add('active');
+      });
+    }
+  } else if (login === 'combined') {
+    showCombined = !showCombined;
+    el.classList.toggle('active', showCombined);
+  } else {
+    el.classList.toggle('active');
+    if (activeAccounts.has(login)) {
+      activeAccounts.delete(login);
+    } else {
+      activeAccounts.add(login);
+    }
+    // Sync "All" state
+    const allItem = document.querySelector('.acct-dropdown-item[data-login="all"]');
+    allItem.classList.toggle('active', activeAccounts.size === logins.length);
+  }
+
+  updateDropdownLabel();
+  renderChart();
+}
+
+function updateDropdownLabel() {
+  const total = Object.keys(analyticsAccounts).length;
+  const count = activeAccounts.size;
+  const label = document.getElementById('acctDropdownLabel');
+  let text = `Accounts (${count}/${total})`;
+  if (showCombined) text += ' + Combined';
+  label.textContent = text;
+}
+
+function getDateCutoff() {
+  if (currentRange === 'all') return null;
+
+  const now = new Date();
+  if (currentRange === 'ytd') {
+    return new Date(now.getFullYear(), 0, 1).toISOString().slice(0, 10);
+  }
+
+  const days = parseInt(currentRange);
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - days);
+  return cutoff.toISOString().slice(0, 10);
+}
+
+function aggregateData(daily, period) {
+  const cutoff = getDateCutoff();
+  let dates = Object.keys(daily).sort();
+
+  if (cutoff) {
+    dates = dates.filter(d => d >= cutoff);
+  }
+
+  if (dates.length === 0) return [];
+
+  if (period === 'daily') {
+    return dates.map(d => ({ date: d, bal: daily[d].bal }));
+  }
+
+  if (period === 'weekly') {
+    const weeks = {};
+    dates.forEach(d => {
+      const dt = new Date(d + 'T00:00:00');
+      const day = dt.getDay();
+      const diff = dt.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(dt);
+      monday.setDate(diff);
+      const weekKey = monday.toISOString().slice(0, 10);
+      weeks[weekKey] = { date: weekKey, bal: daily[d].bal };
+    });
+    return Object.values(weeks).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  if (period === 'monthly') {
+    const months = {};
+    dates.forEach(d => {
+      const monthKey = d.slice(0, 7);
+      months[monthKey] = { date: monthKey + '-01', bal: daily[d].bal };
+    });
+    return Object.values(months).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  return [];
+}
+
+function buildCombinedData(period) {
+  // Sum balances across all active accounts for each date
+  const cutoff = getDateCutoff();
+  const dateSums = {};
+
+  for (const login of activeAccounts) {
+    const daily = analyticsAccounts[login]?.daily;
+    if (!daily) continue;
+
+    let dates = Object.keys(daily).sort();
+    if (cutoff) dates = dates.filter(d => d >= cutoff);
+
+    dates.forEach(d => {
+      if (!dateSums[d]) dateSums[d] = 0;
+      dateSums[d] += daily[d].bal;
+    });
+  }
+
+  // Only keep dates where ALL active accounts have data (avoid partial sums)
+  const allDates = Object.keys(dateSums).sort();
+  const fullDates = allDates.filter(d => {
+    for (const login of activeAccounts) {
+      const daily = analyticsAccounts[login]?.daily;
+      if (!daily || !daily[d]) return false;
+    }
+    return true;
+  });
+
+  const combined = {};
+  fullDates.forEach(d => { combined[d] = { bal: dateSums[d] }; });
+
+  return aggregateData(combined, period);
+}
+
+function renderChart() {
+  const canvas = document.getElementById('growthChart');
+  const ctx = canvas.getContext('2d');
+
+  if (growthChart) {
+    growthChart.destroy();
+    growthChart = null;
+  }
+
+  if (activeAccounts.size === 0 && !showCombined) {
+    canvas.style.display = 'none';
+    const wrap = canvas.parentElement;
+    let empty = wrap.querySelector('.chart-empty');
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.className = 'chart-empty';
+      empty.textContent = 'Select an account to view';
+      wrap.appendChild(empty);
+    }
+    return;
+  }
+
+  canvas.style.display = '';
+  const existing = canvas.parentElement.querySelector('.chart-empty');
+  if (existing) existing.remove();
+
+  // Build unified date labels across all active accounts
+  const allDatesSet = new Set();
+  const logins = Object.keys(analyticsAccounts);
+  const acctPoints = {};
+
+  logins.forEach(login => {
+    if (!activeAccounts.has(login)) return;
+    const acct = analyticsAccounts[login];
+    const points = aggregateData(acct.daily, currentPeriod);
+    acctPoints[login] = {};
+    points.forEach(p => {
+      allDatesSet.add(p.date);
+      acctPoints[login][p.date] = p.bal;
+    });
+  });
+
+  // Add combined dates
+  let combinedPoints = {};
+  if (showCombined && activeAccounts.size > 0) {
+    const cData = buildCombinedData(currentPeriod);
+    cData.forEach(p => {
+      allDatesSet.add(p.date);
+      combinedPoints[p.date] = p.bal;
+    });
+  }
+
+  const allDates = [...allDatesSet].sort();
+
+  // Build datasets
+  const datasets = [];
+  logins.forEach((login, i) => {
+    if (!activeAccounts.has(login)) return;
+    const acct = analyticsAccounts[login];
+    datasets.push({
+      label: acct.name,
+      data: allDates.map(d => acctPoints[login]?.[d] ?? null),
+      borderColor: CHART_COLORS[i % CHART_COLORS.length],
+      borderWidth: 2,
+      pointRadius: currentPeriod === 'monthly' ? 4 : currentPeriod === 'weekly' ? 2.5 : 0,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      fill: false,
+      spanGaps: true,
+    });
+  });
+
+  // Combined line
+  if (showCombined && activeAccounts.size > 0) {
+    datasets.push({
+      label: 'Combined',
+      data: allDates.map(d => combinedPoints[d] ?? null),
+      borderColor: COMBINED_COLOR,
+      borderWidth: 2.5,
+      borderDash: [6, 3],
+      pointRadius: currentPeriod === 'monthly' ? 4 : currentPeriod === 'weekly' ? 2.5 : 0,
+      pointHoverRadius: 5,
+      tension: 0.3,
+      fill: false,
+      spanGaps: true,
+    });
+  }
+
+  growthChart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: allDates, datasets },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: '#1e1e2e',
+          titleColor: '#aaa',
+          bodyColor: '#fff',
+          borderColor: 'rgba(255,255,255,0.1)',
+          borderWidth: 1,
+          titleFont: { family: 'DM Sans', size: 11 },
+          bodyFont: { family: 'JetBrains Mono', size: 12 },
+          padding: 12,
+          callbacks: {
+            title: (items) => {
+              if (!items.length) return '';
+              const dateStr = allDates[items[0].dataIndex];
+              const d = new Date(dateStr + 'T00:00:00');
+              if (currentPeriod === 'monthly') return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+              if (currentPeriod === 'weekly') return 'Week of ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+              return d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            },
+            label: (item) => {
+              if (item.parsed.y == null) return null;
+              return ' ' + item.dataset.label + ':  $' + item.parsed.y.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#666',
+            font: { family: 'DM Sans', size: 10 },
+            maxTicksLimit: 12,
+            callback: function(value, index) {
+              const dateStr = allDates[index];
+              if (!dateStr) return '';
+              const d = new Date(dateStr + 'T00:00:00');
+              if (currentPeriod === 'monthly') return d.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+              return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+            },
+          },
+        },
+        y: {
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: {
+            color: '#666',
+            font: { family: 'JetBrains Mono', size: 10 },
+            callback: (v) => '$' + v.toLocaleString(),
+          },
+        },
+      },
+    },
   });
 }
 
