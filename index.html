@@ -273,9 +273,10 @@ body {
   color: var(--text-dim);
 }
 .summary-card-body {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   padding: 14px 22px 18px;
-  gap: 32px;
+  gap: 16px 32px;
 }
 .summary-item {
   display: flex;
@@ -842,8 +843,6 @@ td.pnl-neg { color: var(--red); }
   .accounts-grid { grid-template-columns: 1fr; gap: 14px; }
   .summary-card { margin-bottom: 18px; }
   .summary-card-body {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
     gap: 14px 16px;
     padding: 12px 16px 16px;
   }
@@ -884,6 +883,12 @@ td.pnl-neg { color: var(--red); }
   .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
   .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
   .calendar-table td:last-child { font-size: 11px; }
+}
+
+@media (min-width: 960px) {
+  .summary-card-body {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 </style>
 </head>
