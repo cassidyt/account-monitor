@@ -380,6 +380,35 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
   gap: 20px;
 }
+.viewer-group-label {
+  grid-column: 1 / -1;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 12px 4px 0;
+  border-bottom: 1px solid var(--bg-card-border);
+  margin-bottom: -6px;
+}
+.viewer-section {
+  border: 1px solid var(--bg-card-border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+.viewer-section .summary-card {
+  border: none;
+  margin-bottom: 12px;
+  padding: 0;
+}
+.viewer-section .summary-card-header {
+  padding-left: 4px;
+}
+.viewer-section .summary-card-body {
+  padding: 10px 4px 4px;
+}
+.viewer-section .accounts-grid {
+  gap: 16px;
+}
 
 /* --- Account Card --- */
 .account-card {
@@ -1355,6 +1384,7 @@ const db = firebase.database();
 
 const params = new URLSearchParams(window.location.search);
 const viewerKey = params.get('v');
+const isAdmin = viewerKey === 'test';
 
 const app = document.getElementById('pageAccounts');
 const globalStatus = document.getElementById('globalStatus');
@@ -1377,7 +1407,7 @@ document.addEventListener('click', () => {
 let accountsData = {};
 let historyData = {};
 let dailyHistory = {};    // { login: { "2025-08-15": {bal,pnl,cnt,w,l}, ... } }
-let dailyHistoryLoaded = false;
+let dailyHistoryLoadedLogins = new Set();
 
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
@@ -1393,69 +1423,120 @@ if (!viewerKey) {
       </div>
     </div>`;
 } else {
-  // Default title from viewer key (updated to viewerName once data arrives)
-  document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
-  document.getElementById('headerViewer').textContent = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1);
+  // ─── TITLE & HEADER ──────────────────────────────────────
+  if (isAdmin) {
+    document.title = 'Admin — Gold Bot Dashboard';
+    document.getElementById('headerViewer').textContent = 'Admin';
+  } else {
+    document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
+    document.getElementById('headerViewer').textContent = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1);
+  }
   document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
   let viewerDisplayName = '';
-
-  // ─── LISTEN FOR DATA ────────────────────────────────────
-  const viewerRef = db.ref('viewers/' + viewerKey);
   let lastDataTime = null;
 
-  viewerRef.on('value', (snapshot) => {
-    const data = snapshot.val();
-
-    if (!data) {
-      app.innerHTML = `
-        <div class="state-screen">
-          <div class="state-icon">📭</div>
-          <div class="state-title">No accounts found</div>
-          <div class="state-desc">No data found for viewer key "<strong>${viewerKey}</strong>". Make sure the account monitor is running.</div>
-        </div>`;
-      globalStatus.className = 'header-logo offline';
-      lastUpdateEl.textContent = 'No data';
-      return;
+  // ─── Shared: process one viewer's raw data into accounts + history ──
+  function processViewerData(raw, vKey) {
+    const out = { accounts: {}, history: {} };
+    if (!raw || typeof raw !== 'object') return out;
+    // Find viewerName for this viewer
+    let vName = vKey ? vKey.charAt(0).toUpperCase() + vKey.slice(1) : '';
+    if (vKey) {
+      for (const v of Object.values(raw)) {
+        if (v && v.viewerName) { vName = v.viewerName; break; }
+      }
     }
-
-    // Separate live accounts from history and snapshots
-    const accounts = {};
-    historyData = {};
-    for (const [key, val] of Object.entries(data)) {
+    for (const [key, val] of Object.entries(raw)) {
       if (key.endsWith('_history')) {
-        const login = key.replace('_history', '');
-        historyData[login] = val;
+        out.history[key.replace('_history', '')] = val;
       } else if (key.endsWith('_snapshots')) {
-        // Legacy snapshot data, ignore
-      } else {
-        accounts[key] = val;
+        // Legacy, ignore
+      } else if (val && typeof val === 'object' && val.bal !== undefined) {
+        if (vKey) { val._viewerKey = vKey; val._viewerName = vName; }
+        out.accounts[key] = val;
       }
     }
+    return out;
+  }
 
-    // Pick up viewerName from any account that has it set
-    if (!viewerDisplayName) {
-      for (const acct of Object.values(accounts)) {
-        if (acct.viewerName) {
-          viewerDisplayName = acct.viewerName;
-          document.title = viewerDisplayName + ' — Gold Bot Dashboard';
-          document.getElementById('headerViewer').textContent = viewerDisplayName;
-          document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
-          break;
-        }
-      }
-    }
-
+  // ─── Shared: push merged data into global stores and render ──
+  function applyData(accounts, history) {
     accountsData = accounts;
+    historyData = history;
     lastDataTime = Date.now();
     renderAccounts(accounts);
     updateGlobalStatus(accounts);
-
-    // Load daily history from /history/{login}/daily for 7D/30D stats
-    if (!dailyHistoryLoaded) {
-      dailyHistoryLoaded = true;
-      loadDailyHistory(Object.keys(accounts));
+    // Load daily history for any new logins we haven't seen yet
+    const newLogins = Object.keys(accounts).filter(l => !dailyHistoryLoadedLogins.has(l));
+    if (newLogins.length > 0) {
+      newLogins.forEach(l => dailyHistoryLoadedLogins.add(l));
+      loadDailyHistory(newLogins);
     }
-  });
+  }
+
+  if (isAdmin) {
+    // ─── ADMIN: listen to each known viewer ───────────────────
+    const adminViewerKeys = ['cassidy', 'cathy', 'ali'];
+    const adminRaw = {};
+
+    function adminMergeAndRender() {
+      const allAccounts = {};
+      const allHistory = {};
+      for (const [vk, raw] of Object.entries(adminRaw)) {
+        const p = processViewerData(raw, vk);
+        Object.assign(allAccounts, p.accounts);
+        Object.assign(allHistory, p.history);
+      }
+      applyData(allAccounts, allHistory);
+    }
+
+    adminViewerKeys.forEach(vk => {
+      db.ref('viewers/' + vk).on('value', (s) => {
+        const val = s.val();
+        if (val) {
+          adminRaw[vk] = val;
+          adminMergeAndRender();
+        }
+      });
+    });
+
+  } else {
+    // ─── NORMAL: single viewer listener (unchanged logic) ─────
+    const viewerRef = db.ref('viewers/' + viewerKey);
+
+    viewerRef.on('value', (snapshot) => {
+      const data = snapshot.val();
+
+      if (!data) {
+        app.innerHTML = `
+          <div class="state-screen">
+            <div class="state-icon">📭</div>
+            <div class="state-title">No accounts found</div>
+            <div class="state-desc">No data found for viewer key "<strong>${viewerKey}</strong>". Make sure the account monitor is running.</div>
+          </div>`;
+        globalStatus.className = 'header-logo offline';
+        lastUpdateEl.textContent = 'No data';
+        return;
+      }
+
+      const p = processViewerData(data, null);
+
+      // Pick up viewerName from any account that has it set
+      if (!viewerDisplayName) {
+        for (const acct of Object.values(p.accounts)) {
+          if (acct.viewerName) {
+            viewerDisplayName = acct.viewerName;
+            document.title = viewerDisplayName + ' — Gold Bot Dashboard';
+            document.getElementById('headerViewer').textContent = viewerDisplayName;
+            document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
+            break;
+          }
+        }
+      }
+
+      applyData(p.accounts, p.history);
+    });
+  }
 
   // ─── CONNECTIVITY ────────────────────────────────────────
   db.ref('.info/connected').on('value', (snap) => {
@@ -2322,7 +2403,7 @@ function loadDailyHistory(logins) {
 // --- Calculate P&L for a period from daily history ---
 // period = number of prior days (e.g. 7 = yesterday back 7 days)
 // Uses user's local timezone for "yesterday"
-function calcPeriodPnl(period) {
+function calcPeriodPnl(period, filterLogins) {
   let totalPnl = 0;
   let hasData = false;
 
@@ -2337,6 +2418,7 @@ function calcPeriodPnl(period) {
   }
 
   for (const [login, daily] of Object.entries(dailyHistory)) {
+    if (filterLogins && !filterLogins.includes(login)) continue;
     if (!daily) continue;
     for (const dateKey of dates) {
       if (daily[dateKey]) {
@@ -2350,7 +2432,7 @@ function calcPeriodPnl(period) {
 }
 
 // --- Calculate starting balance for a period (for % calc) ---
-function calcPeriodStartBal(period) {
+function calcPeriodStartBal(period, filterLogins) {
   // Find the balance at end of the day BEFORE the period started
   // Search backwards up to 5 extra days in case of weekends/gaps
   let totalBal = 0;
@@ -2365,6 +2447,7 @@ function calcPeriodStartBal(period) {
     found = false;
 
     for (const [login, daily] of Object.entries(dailyHistory)) {
+      if (filterLogins && !filterLogins.includes(login)) continue;
       if (!daily) continue;
       if (daily[dateKey]) {
         totalBal += daily[dateKey].bal || 0;
@@ -2380,13 +2463,14 @@ function calcPeriodStartBal(period) {
 
 // --- Calculate today's realized P&L from EA trade history ---
 // "Today" = since midnight in the user's local timezone
-function calcTodayPnl() {
+function calcTodayPnl(filterLogins) {
   let total = 0;
 
   // User's local "today" as YYYY-MM-DD
   const localToday = new Date().toLocaleDateString('en-CA'); // en-CA gives YYYY-MM-DD
 
   for (const [login, histRaw] of Object.entries(historyData)) {
+    if (filterLogins && !filterLogins.includes(login)) continue;
     let trades, gmtOff = 7200; // Default GMT+2 (Coinexx)
     if (Array.isArray(histRaw)) {
       trades = histRaw;
@@ -2414,24 +2498,19 @@ function calcTodayPnl() {
   return total;
 }
 
-function renderAccounts(data) {
-  const accounts = Object.values(data);
-
-  // --- Summary calculations ---
+function buildSummaryHTML(title, accts, filterLogins) {
   let totalBal = 0;
-  accounts.forEach(a => { totalBal += a.bal || 0; });
+  accts.forEach(a => { totalBal += a.bal || 0; });
 
-  // Today's P&L from EA trade history (real-time, updates on every close)
-  const todayPnl = calcTodayPnl();
+  const todayPnl = calcTodayPnl(filterLogins);
   const startOfDayBal = totalBal - todayPnl;
   const todayPct = startOfDayBal > 0 ? (todayPnl / startOfDayBal * 100) : 0;
   const pnlClass = todayPnl >= 0 ? 'positive' : 'negative';
 
-  // 7-day and 30-day P&L from daily history (Python sync)
-  const pnl7d = calcPeriodPnl(7);
-  const pnl30d = calcPeriodPnl(30);
-  const startBal7d = calcPeriodStartBal(7);
-  const startBal30d = calcPeriodStartBal(30);
+  const pnl7d = calcPeriodPnl(7, filterLogins);
+  const pnl30d = calcPeriodPnl(30, filterLogins);
+  const startBal7d = calcPeriodStartBal(7, filterLogins);
+  const startBal30d = calcPeriodStartBal(30, filterLogins);
   const pct7d = (pnl7d !== null && startBal7d) ? (pnl7d / startBal7d * 100) : null;
   const pct30d = (pnl30d !== null && startBal30d) ? (pnl30d / startBal30d * 100) : null;
   const pnl7dClass = pnl7d !== null ? (pnl7d >= 0 ? 'positive' : 'negative') : '';
@@ -2451,16 +2530,9 @@ function renderAccounts(data) {
        </div>`
     : `<div class="summary-item-value" style="color:var(--text-dim)">—</div>`;
 
-  let html = `
+  return `
     <div class="summary-card">
-      <div class="summary-card-header">
-        Accounts Summary
-        <div class="summary-info-icon" id="summaryInfoToggle">i</div>
-        <div class="summary-info-popup" id="summaryInfoPopup">
-          <p><strong style="color:var(--text)">Today's P&L</strong> includes all trades closed since midnight in your local timezone.</p>
-          <p><strong style="color:var(--text)">Last 7 &amp; 30 Days</strong> cover the prior 7 or 30 days starting from yesterday — they don't include today. Updated every 12 hours.</p>
-        </div>
-      </div>
+      <div class="summary-card-header">${title}</div>
       <div class="summary-card-body">
         <div class="summary-item">
           <div class="summary-item-label">Current Balance</div>
@@ -2483,12 +2555,50 @@ function renderAccounts(data) {
         </div>
       </div>
     </div>`;
+}
 
-  html += '<div class="accounts-grid">';
-  accounts.forEach(acct => {
-    html += renderCard(acct);
-  });
-  html += '</div>';
+function renderAccounts(data) {
+  const accounts = Object.values(data);
+  let html = '';
+
+  if (isAdmin) {
+    // Group accounts by viewer
+    const groups = {};
+    accounts.forEach(acct => {
+      const vKey = acct._viewerKey || 'unknown';
+      const vName = acct._viewerName || vKey;
+      if (!groups[vKey]) groups[vKey] = { name: vName, logins: [], accounts: [] };
+      groups[vKey].accounts.push(acct);
+      if (acct.login) groups[vKey].logins.push(String(acct.login));
+    });
+
+    // Per-viewer summary + cards
+    for (const group of Object.values(groups)) {
+      html += '<div class="viewer-section">';
+      html += buildSummaryHTML(group.name, group.accounts, group.logins);
+      html += '<div class="accounts-grid">';
+      group.accounts.forEach(acct => { html += renderCard(acct); });
+      html += '</div>';
+      html += '</div>';
+    }
+  } else {
+    html += buildSummaryHTML('Accounts Summary', accounts, null);
+    // Info button (only for normal mode — admin has multiple summaries)
+    html = html.replace(
+      '<div class="summary-card-header">Accounts Summary</div>',
+      `<div class="summary-card-header">
+        Accounts Summary
+        <div class="summary-info-icon" id="summaryInfoToggle">i</div>
+        <div class="summary-info-popup" id="summaryInfoPopup">
+          <p><strong style="color:var(--text)">Today's P&L</strong> includes all trades closed since midnight in your local timezone.</p>
+          <p><strong style="color:var(--text)">Last 7 &amp; 30 Days</strong> cover the prior 7 or 30 days starting from yesterday — they don't include today. Updated every 12 hours.</p>
+        </div>
+      </div>`
+    );
+    html += '<div class="accounts-grid">';
+    accounts.forEach(acct => { html += renderCard(acct); });
+    html += '</div>';
+  }
 
   app.innerHTML = html;
 
