@@ -380,15 +380,6 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(560px, 1fr));
   gap: 20px;
 }
-.viewer-group-label {
-  grid-column: 1 / -1;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  padding: 12px 4px 0;
-  border-bottom: 1px solid var(--bg-card-border);
-  margin-bottom: -6px;
-}
 .viewer-section {
   border: 1px solid var(--bg-card-border);
   border-radius: 14px;
@@ -1226,7 +1217,7 @@ td.pnl-neg { color: var(--red); }
     <div class="header-logo" id="globalStatus"></div>
     <div class="header-titles">
       <div class="header-viewer" id="headerViewer">Gold Bot Dashboard</div>
-      <div class="header-subtitle" id="headerSubtitle"></div>
+      <div class="header-subtitle" id="headerSubtitle">Gold Bot Dashboard</div>
     </div>
   </div>
   <div class="header-right">
@@ -1431,7 +1422,6 @@ if (!viewerKey) {
     document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
     document.getElementById('headerViewer').textContent = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1);
   }
-  document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
   let viewerDisplayName = '';
   let lastDataTime = null;
 
@@ -1528,7 +1518,6 @@ if (!viewerKey) {
             viewerDisplayName = acct.viewerName;
             document.title = viewerDisplayName + ' — Gold Bot Dashboard';
             document.getElementById('headerViewer').textContent = viewerDisplayName;
-            document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
             break;
           }
         }
