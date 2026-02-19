@@ -1248,7 +1248,7 @@ td.pnl-neg { color: var(--red); }
     <div class="news-header" onclick="toggleNews()">
       <div class="news-header-left">
         <svg class="news-chevron" id="newsChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
-        <div class="calendar-title">📰 Market News</div>
+        <div class="calendar-title">🗞️ Market News</div>
       </div>
       <div class="calendar-updated" id="newsUpdated"></div>
     </div>
@@ -1540,7 +1540,7 @@ function loadTradingViewWidget() {
   script.textContent = JSON.stringify({
     "symbol": "OANDA:XAUUSD",
     "interval": "5",
-    "timezone": "Etc/UTC",
+    "timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
     "theme": "dark",
     "style": "3",
     "locale": "en",
