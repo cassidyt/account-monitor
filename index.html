@@ -787,12 +787,6 @@ td.pnl-neg { color: var(--red); }
   align-items: center;
   gap: 8px;
 }
-.calendar-title .red-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--red);
-  flex-shrink: 0;
-}
 .calendar-updated {
   font-size: 11px;
   color: var(--text-dim);
@@ -855,15 +849,18 @@ td.pnl-neg { color: var(--red); }
 .cal-past:hover td {
   opacity: 0.6;
 }
+.cal-next td:first-child {
+  box-shadow: inset 3px 0 0 var(--accent);
+}
 .cal-next td {
-  border-left: 2px solid var(--accent);
+  background: rgba(224, 188, 104, 0.05) !important;
 }
 .cal-next .calendar-event-title {
-  color: var(--accent);
-  font-weight: 600;
+  font-weight: 700;
 }
 .cal-next .calendar-time {
-  color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
 }
 .calendar-empty {
   padding: 24px 16px;
@@ -884,6 +881,11 @@ td.pnl-neg { color: var(--red); }
   transition: color 0.15s ease;
 }
 .calendar-footer a:hover { color: #60a5fa; }
+
+/* --- Page Footer --- */
+.page-footer {
+  padding: 80px 0;
+}
 
 /* --- News Section --- */
 .news-header {
@@ -1234,7 +1236,7 @@ td.pnl-neg { color: var(--red); }
   </div>
   <div class="calendar-card">
     <div class="calendar-header">
-      <div class="calendar-title"><span class="red-dot"></span> U.S. Economic Events This Week</div>
+      <div class="calendar-title">📅 U.S. Economic Events This Week</div>
       <div class="calendar-updated" id="calendarUpdated"></div>
     </div>
     <div id="calendarBody"><div class="calendar-empty">Loading calendar...</div></div>
@@ -1246,7 +1248,7 @@ td.pnl-neg { color: var(--red); }
     <div class="news-header" onclick="toggleNews()">
       <div class="news-header-left">
         <svg class="news-chevron" id="newsChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
-        <div class="calendar-title">Market News</div>
+        <div class="calendar-title">📰 Market News</div>
       </div>
       <div class="calendar-updated" id="newsUpdated"></div>
     </div>
@@ -1297,6 +1299,8 @@ td.pnl-neg { color: var(--red); }
     </div>
   </div>
 </div>
+
+<div class="page-footer" id="pageFooter"></div>
 
 <div class="nav-overlay" id="navOverlay" onclick="closeNav()"></div>
 <div class="nav-panel" id="navPanel" style="display:none">
@@ -1642,10 +1646,11 @@ db.ref('market/calendar').on('value', (snapshot) => {
       const isPast = d <= now;
       const isNext = e._globalIndex === nextUpcomingIndex;
       const rowClass = isNext ? 'cal-next' : (isPast ? 'cal-past' : '');
+      const titlePrefix = isNext ? '<span style="color:var(--accent);margin-right:4px">▸</span>' : '';
       html += `
         <tr${rowClass ? ' class="' + rowClass + '"' : ''}>
           <td><span class="calendar-time">${time}</span></td>
-          <td><span class="calendar-event-title">${e.title}</span></td>
+          <td>${titlePrefix}<span class="calendar-event-title">${e.title}</span></td>
           <td><span class="calendar-forecast">${forecast}</span> / ${previous}</td>
         </tr>`;
     });
