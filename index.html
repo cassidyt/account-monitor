@@ -1352,7 +1352,9 @@ if (!viewerKey) {
       </div>
     </div>`;
 } else {
+  // Default title from viewer key (updated to viewerName once data arrives)
   document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
+  let viewerDisplayName = '';
 
   // ─── LISTEN FOR DATA ────────────────────────────────────
   const viewerRef = db.ref('viewers/' + viewerKey);
@@ -1378,13 +1380,23 @@ if (!viewerKey) {
     historyData = {};
     for (const [key, val] of Object.entries(data)) {
       if (key.endsWith('_history')) {
-        // Strip "_history" suffix to get login number
         const login = key.replace('_history', '');
         historyData[login] = val;
       } else if (key.endsWith('_snapshots')) {
-        // Store for future use, ignore for now
+        // Legacy snapshot data, ignore
       } else {
         accounts[key] = val;
+      }
+    }
+
+    // Pick up viewerName from any account that has it set
+    if (!viewerDisplayName) {
+      for (const acct of Object.values(accounts)) {
+        if (acct.viewerName) {
+          viewerDisplayName = acct.viewerName;
+          document.title = viewerDisplayName + ' — Gold Bot Dashboard';
+          break;
+        }
       }
     }
 
