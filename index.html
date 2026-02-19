@@ -193,11 +193,25 @@ body {
   50% { opacity: 0.4; }
 }
 
-.header-title {
+.header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.header-viewer {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.3px;
+  color: var(--text);
+  line-height: 1.2;
+}
+.header-subtitle {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
   color: var(--text-dim);
+  line-height: 1.2;
 }
 .header-right {
   display: flex;
@@ -819,6 +833,9 @@ td.pnl-neg { color: var(--red); }
   border-bottom: 1px solid var(--bg-card-border);
 }
 .calendar-table tr:hover .calendar-day-label { background: rgba(59, 130, 246, 0.05); }
+.cal-day-past {
+  opacity: 0.38;
+}
 
 .calendar-time {
   font-family: var(--mono);
@@ -831,6 +848,22 @@ td.pnl-neg { color: var(--red); }
 }
 .calendar-forecast {
   color: var(--text-dim);
+}
+.cal-past td {
+  opacity: 0.38;
+}
+.cal-past:hover td {
+  opacity: 0.6;
+}
+.cal-next td {
+  border-left: 2px solid var(--accent);
+}
+.cal-next .calendar-event-title {
+  color: var(--accent);
+  font-weight: 600;
+}
+.cal-next .calendar-time {
+  color: var(--accent);
 }
 .calendar-empty {
   padding: 24px 16px;
@@ -1087,7 +1120,8 @@ td.pnl-neg { color: var(--red); }
     flex-wrap: wrap;
     gap: 8px;
   }
-  .header-title { font-size: 13px; }
+  .header-viewer { font-size: 13px; }
+  .header-subtitle { font-size: 9px; }
   .header-right { font-size: 11px; }
   .main { padding: 14px 12px; }
   .accounts-grid { grid-template-columns: 1fr; gap: 14px; }
@@ -1159,7 +1193,10 @@ td.pnl-neg { color: var(--red); }
       <span></span><span></span><span></span>
     </button>
     <div class="header-logo" id="globalStatus"></div>
-    <div class="header-title">Gold Bot Dashboard</div>
+    <div class="header-titles">
+      <div class="header-viewer" id="headerViewer">Gold Bot Dashboard</div>
+      <div class="header-subtitle" id="headerSubtitle"></div>
+    </div>
   </div>
   <div class="header-right">
     <span id="lastUpdate">Connecting...</span>
@@ -1354,6 +1391,8 @@ if (!viewerKey) {
 } else {
   // Default title from viewer key (updated to viewerName once data arrives)
   document.title = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1) + ' — Gold Bot Dashboard';
+  document.getElementById('headerViewer').textContent = viewerKey.charAt(0).toUpperCase() + viewerKey.slice(1);
+  document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
   let viewerDisplayName = '';
 
   // ─── LISTEN FOR DATA ────────────────────────────────────
@@ -1395,6 +1434,8 @@ if (!viewerKey) {
         if (acct.viewerName) {
           viewerDisplayName = acct.viewerName;
           document.title = viewerDisplayName + ' — Gold Bot Dashboard';
+          document.getElementById('headerViewer').textContent = viewerDisplayName;
+          document.getElementById('headerSubtitle').textContent = 'Gold Bot Dashboard';
           break;
         }
       }
@@ -1560,13 +1601,26 @@ db.ref('market/calendar').on('value', (snapshot) => {
   }
 
   // Group events by day (in user's local timezone)
+  const now = new Date();
   const dayGroups = {};
-  data.events.forEach(e => {
+  let nextUpcomingIndex = -1;
+  const allEvents = [];
+
+  data.events.forEach((e, i) => {
     const d = new Date(e.date);
     const dayKey = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     if (!dayGroups[dayKey]) dayGroups[dayKey] = [];
-    dayGroups[dayKey].push(e);
+    dayGroups[dayKey].push({ ...e, _globalIndex: i });
+    allEvents.push({ date: d, index: i });
   });
+
+  // Find the first event that hasn't happened yet
+  for (let i = 0; i < allEvents.length; i++) {
+    if (allEvents[i].date > now) {
+      nextUpcomingIndex = allEvents[i].index;
+      break;
+    }
+  }
 
   let html = `<table class="calendar-table">
     <thead><tr>
@@ -1577,14 +1631,19 @@ db.ref('market/calendar').on('value', (snapshot) => {
     <tbody>`;
 
   for (const [day, events] of Object.entries(dayGroups)) {
-    html += `<tr><td colspan="3" class="calendar-day-label">${day}</td></tr>`;
+    // Check if all events in this day group are past
+    const allPast = events.every(e => new Date(e.date) <= now);
+    html += `<tr><td colspan="3" class="calendar-day-label${allPast ? ' cal-day-past' : ''}">${day}</td></tr>`;
     events.forEach(e => {
       const d = new Date(e.date);
       const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
       const forecast = e.forecast || '—';
       const previous = e.previous || '—';
+      const isPast = d <= now;
+      const isNext = e._globalIndex === nextUpcomingIndex;
+      const rowClass = isNext ? 'cal-next' : (isPast ? 'cal-past' : '');
       html += `
-        <tr>
+        <tr${rowClass ? ' class="' + rowClass + '"' : ''}>
           <td><span class="calendar-time">${time}</span></td>
           <td><span class="calendar-event-title">${e.title}</span></td>
           <td><span class="calendar-forecast">${forecast}</span> / ${previous}</td>
