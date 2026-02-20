@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Gold Bot Dashboard</title>
 <link rel="icon" type="image/png" href="favicon-32x32.png?v=1">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=1">
@@ -3016,6 +3019,11 @@ function updateGlobalStatus(data) {
     const latest = times.sort().reverse()[0];
     lastUpdateEl.textContent = 'Last update: ' + latest;
   }
+}
+
+// ─── SERVICE WORKER (cache busting for iOS home screen) ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 </script>
 
