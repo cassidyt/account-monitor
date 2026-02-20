@@ -386,6 +386,20 @@ body {
   padding: 20px;
   margin-bottom: 24px;
 }
+.master-card {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+.master-card .card-name {
+  color: #60a5fa;
+}
+.master-label-cell, .master-comment-cell {
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .viewer-section .summary-card {
   border: none;
   margin-bottom: 12px;
@@ -1399,6 +1413,9 @@ let accountsData = {};
 let historyData = {};
 let dailyHistory = {};    // { login: { "2025-08-15": {bal,pnl,cnt,w,l}, ... } }
 let dailyHistoryLoadedLogins = new Set();
+let masterData = {};      // { login: { bal, eq, floatingPnl, positions, ... } }
+// Whether this viewer can see master accounts (future: set by EA flag)
+let canViewMaster = false;
 
 // ─── NO VIEWER KEY ──────────────────────────────────────
 if (!viewerKey) {
@@ -1454,6 +1471,16 @@ if (!viewerKey) {
     accountsData = accounts;
     historyData = history;
     lastDataTime = Date.now();
+    // Check if any account has showMaster flag (from EA parameter)
+    if (!canViewMaster) {
+      for (const acct of Object.values(accounts)) {
+        if (acct.showMaster) {
+          canViewMaster = true;
+          console.log('[Master] showMaster flag detected on account', acct.login);
+          break;
+        }
+      }
+    }
     renderAccounts(accounts);
     updateGlobalStatus(accounts);
     // Load daily history for any new logins we haven't seen yet
@@ -1526,6 +1553,22 @@ if (!viewerKey) {
       applyData(p.accounts, p.history);
     });
   }
+
+  // ─── MASTER ACCOUNTS ──────────────────────────────────────
+  // Admin always sees master. Normal viewers see if any of their accounts has showMaster flag.
+  if (isAdmin) canViewMaster = true;
+  console.log('[Master] canViewMaster:', canViewMaster, '| isAdmin:', isAdmin);
+  db.ref('master').on('value', (snap) => {
+    const val = snap.val();
+    console.log('[Master] listener fired, data:', val);
+    masterData = val || {};
+    // Re-render if we have viewer accounts loaded
+    if (Object.keys(accountsData).length > 0) {
+      renderAccounts(accountsData);
+    }
+  }, (err) => {
+    console.error('[Master] listener error:', err);
+  });
 
   // ─── CONNECTIVITY ────────────────────────────────────────
   db.ref('.info/connected').on('value', (snap) => {
@@ -2550,6 +2593,16 @@ function renderAccounts(data) {
   const accounts = Object.values(data);
   let html = '';
 
+  // Master account cards (admin always, or future: viewers with access flag)
+  const showMaster = isAdmin || canViewMaster;
+  const masters = Object.values(masterData);
+  console.log('[Master] renderAccounts: showMaster=', showMaster, 'masters.length=', masters.length);
+  if (showMaster && masters.length > 0) {
+    html += '<div class="accounts-grid">';
+    masters.forEach(m => { html += renderMasterCard(m); });
+    html += '</div>';
+  }
+
   if (isAdmin) {
     // Group accounts by viewer
     const groups = {};
@@ -2625,6 +2678,102 @@ function renderAccounts(data) {
       sInfoPop.classList.toggle('show');
     });
   }
+}
+
+function renderMasterCard(m) {
+  const freshness = getFreshness(m.time);
+  const statusClass = freshness === 'live' ? '' : freshness;
+  const statusLabel = freshness === 'live' ? 'LIVE' : freshness === 'stale' ? 'STALE' : 'OFFLINE';
+
+  const floatPnl = m.floatingPnl || 0;
+  const floatClass = floatPnl >= 0 ? 'positive' : 'negative';
+  const floatPct = m.bal !== 0 ? (floatPnl / m.bal * 100) : 0;
+
+  const posArr = m.positions ? (Array.isArray(m.positions) ? m.positions : Object.values(m.positions)) : [];
+  const posCount = posArr.length;
+
+  const posTableHTML = posCount > 0 ? `
+            <table class="positions-table">
+              <thead>
+                <tr>
+                  <th>Symbol</th>
+                  <th>Dir</th>
+                  <th>Vol</th>
+                  <th>Entry</th>
+                  <th>P&L</th>
+                  <th>Bot</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${posArr.map(p => `
+                  <tr>
+                    <td>${p.sym || ''}</td>
+                    <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir || ''}</td>
+                    <td>${(p.vol || 0).toFixed(2)}</td>
+                    <td>${formatPrice(p.ep || 0)}</td>
+                    <td class="${(p.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl || 0)}</td>
+                    <td class="master-label-cell">${p.label || '—'}</td>
+                    <td class="master-comment-cell">${p.comment || '—'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>` : `<div class="no-positions">No open positions</div>`;
+
+  const positionsHTML = `
+      <div class="positions-section">
+        <div class="positions-header no-border" onclick="togglePositions(this, 'master_${m.login}')">
+          <span>Open Positions: ${posCount}</span>
+          <svg class="pos-chevron collapsed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+        </div>
+        <div class="positions-body collapsed">
+          <div class="positions-body-inner">
+            ${posTableHTML}
+          </div>
+        </div>
+      </div>`;
+
+  return `
+    <div class="account-card master-card" data-login="master_${m.login}">
+      <div class="card-header" onclick="toggleCard(this)">
+        <div class="card-header-left">
+          <svg class="card-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+          <div>
+            <div class="card-name">Master: ${m.name}</div>
+            <div class="card-meta">${m.broker} · ${m.ccy}</div>
+          </div>
+        </div>
+        <div class="card-header-right">
+          <div class="card-status ${statusClass}">
+            <div class="card-status-dot"></div>
+            ${statusLabel}
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="card-body-inner">
+          <div class="metrics">
+            <div class="metric">
+              <div class="metric-label">Balance</div>
+              <div class="metric-value"><span class="currency">$</span>${formatNum(m.bal)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Equity</div>
+              <div class="metric-value"><span class="currency">$</span>${formatNum(m.eq)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Floating P&L</div>
+              <div class="metric-value ${floatClass}">${formatMoney(floatPnl)}</div>
+            </div>
+            <div class="metric">
+              <div class="metric-label">Float %</div>
+              <div class="metric-value ${floatClass}">${floatPct >= 0 ? '+' : ''}${floatPct.toFixed(2)}<span class="pct">%</span></div>
+            </div>
+          </div>
+          ${positionsHTML}
+        </div>
+      </div>
+    </div>`;
 }
 
 function renderCard(a) {
