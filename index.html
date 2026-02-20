@@ -1439,6 +1439,7 @@ let historyData = {};
 let dailyHistory = {};    // { login: { "2025-08-15": {bal,pnl,cnt,w,l}, ... } }
 let dailyHistoryLoadedLogins = new Set();
 let masterData = {};      // { login: { bal, eq, floatingPnl, positions, ... } }
+let masterHistoryData = {};  // { login: { gmtOff, trades: [...] } }
 // Whether this viewer can see master accounts (future: set by EA flag)
 let canViewMaster = false;
 
@@ -1586,7 +1587,17 @@ if (!viewerKey) {
   db.ref('master').on('value', (snap) => {
     const val = snap.val();
     console.log('[Master] listener fired, data:', val);
-    masterData = val || {};
+    masterData = {};
+    masterHistoryData = {};
+    if (val) {
+      for (const [key, v] of Object.entries(val)) {
+        if (key.endsWith('_history')) {
+          masterHistoryData[key.replace('_history', '')] = v;
+        } else if (v && typeof v === 'object' && v.bal !== undefined) {
+          masterData[key] = v;
+        }
+      }
+    }
     // Re-render if we have viewer accounts loaded
     if (Object.keys(accountsData).length > 0) {
       renderAccounts(accountsData);
@@ -2326,14 +2337,24 @@ function openHistory(login) {
   const summary = document.getElementById('flyoutSummary');
   const body = document.getElementById('flyoutBody');
 
+  // Determine if this is a master account
+  const isMaster = login.startsWith('master_');
+  const realLogin = isMaster ? login.replace('master_', '') : login;
+
   // Find account name
-  const acct = accountsData[login];
-  const name = acct ? acct.name : 'Account #' + login;
+  let name;
+  if (isMaster) {
+    const mAcct = masterData[realLogin];
+    name = mAcct ? 'Master: ' + mAcct.name : 'Master #' + realLogin;
+  } else {
+    const acct = accountsData[realLogin];
+    name = acct ? acct.name : 'Account #' + realLogin;
+  }
 
   title.textContent = 'Trade History';
-  subtitle.textContent = name + ' #' + login;
+  subtitle.textContent = name + ' #' + realLogin;
 
-  const histRaw = historyData[login];
+  const histRaw = isMaster ? masterHistoryData[realLogin] : historyData[realLogin];
 
   // Support both old format (array) and new format ({gmtOff, trades})
   let trades, gmtOff = 0;
@@ -2393,10 +2414,18 @@ function openHistory(login) {
            local.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
 
+  // Extract bot name from label (same logic as master card)
+  function getBotFromTrade(t) {
+    const src = t.label || t.comment || '';
+    const match = src.match(/_([^_:]+):[^:]+$/);
+    return match ? match[1] : null;
+  }
+
   let tableHTML = `
     <table class="flyout-table">
       <thead><tr>
         <th>Closed</th>
+        ${isMaster ? '<th>Bot</th>' : ''}
         <th>Dir</th>
         <th>Vol</th>
         <th>Open</th>
@@ -2409,9 +2438,11 @@ function openHistory(login) {
     const dirClass = t.dir === 'BUY' ? 'dir-buy' : 'dir-sell';
     const pnlCls = t.pnl >= 0 ? 'pnl-pos' : 'pnl-neg';
     const dig = t.op > 100 ? 2 : 5;
+    const bot = isMaster ? (getBotFromTrade(t) || 'Manual') : '';
     tableHTML += `
       <tr>
         <td>${fmtTime(t.ct)}</td>
+        ${isMaster ? '<td class="master-label-cell">' + bot + '</td>' : ''}
         <td class="${dirClass}">${t.dir}</td>
         <td>${t.vol.toFixed(2)}</td>
         <td>${t.op.toFixed(dig)}</td>
@@ -2810,6 +2841,9 @@ function renderMasterCard(m) {
           </div>
         </div>
         <div class="card-header-right">
+          <div class="history-btn" onclick="event.stopPropagation(); openHistory('master_${m.login}')" title="Trade History">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
           <div class="card-status ${statusClass}">
             <div class="card-status-dot"></div>
             ${statusLabel}
