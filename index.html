@@ -392,6 +392,31 @@ body {
 .master-card .card-name {
   color: #60a5fa;
 }
+.master-bot-group {
+  margin-bottom: 12px;
+}
+.master-bot-group:last-child {
+  margin-bottom: 0;
+}
+.master-bot-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  margin-bottom: 4px;
+  border-left: 3px solid #60a5fa;
+  background: rgba(59, 130, 246, 0.06);
+  border-radius: 0 6px 6px 0;
+}
+.master-bot-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #60a5fa;
+}
+.master-bot-stats {
+  font-size: 12px;
+  color: var(--text-dim);
+}
 .master-label-cell, .master-comment-cell {
   font-size: 11px;
   color: var(--text-dim);
@@ -2692,43 +2717,82 @@ function renderMasterCard(m) {
   const posArr = m.positions ? (Array.isArray(m.positions) ? m.positions : Object.values(m.positions)) : [];
   const posCount = posArr.length;
 
-  const posTableHTML = posCount > 0 ? `
-            <table class="positions-table">
-              <thead>
+  // Extract bot name from label like "GRID_XAUUSD_Chanel:Abxt8v0d2"
+  function getBotName(p) {
+    const src = p.label || p.comment || '';
+    const match = src.match(/_([^_:]+):[^:]+$/);
+    return match ? match[1] : null;
+  }
+
+  // Group positions by bot
+  const groups = {};
+  posArr.forEach(p => {
+    const bot = getBotName(p) || '_manual';
+    if (!groups[bot]) groups[bot] = [];
+    groups[bot].push(p);
+  });
+
+  let posContentHTML = '';
+  if (posCount > 0) {
+    // Sort: named bots first (alphabetical), manual last
+    const botNames = Object.keys(groups).sort((a, b) => {
+      if (a === '_manual') return 1;
+      if (b === '_manual') return -1;
+      return a.localeCompare(b);
+    });
+
+    botNames.forEach(bot => {
+      const positions = groups[bot];
+      const groupPnl = positions.reduce((s, p) => s + (p.pnl || 0), 0);
+      const groupVol = positions.reduce((s, p) => s + (p.vol || 0), 0);
+      const pnlClass = groupPnl >= 0 ? 'pnl-pos' : 'pnl-neg';
+      const label = bot === '_manual' ? 'Manual' : bot;
+
+      posContentHTML += `
+        <div class="master-bot-group">
+          <div class="master-bot-header">
+            <span class="master-bot-name">${label}</span>
+            <span class="master-bot-stats">
+              ${positions.length} pos · ${groupVol.toFixed(2)} lots · <span class="${pnlClass}">${formatMoney(groupPnl)}</span>
+            </span>
+          </div>
+          <table class="positions-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Dir</th>
+                <th>Vol</th>
+                <th>Entry</th>
+                <th>P&L</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${positions.map(p => `
                 <tr>
-                  <th>Symbol</th>
-                  <th>Dir</th>
-                  <th>Vol</th>
-                  <th>Entry</th>
-                  <th>P&L</th>
-                  <th>Bot</th>
-                  <th>Notes</th>
+                  <td>${p.sym || ''}</td>
+                  <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir || ''}</td>
+                  <td>${(p.vol || 0).toFixed(2)}</td>
+                  <td>${formatPrice(p.ep || 0)}</td>
+                  <td class="${(p.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl || 0)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                ${posArr.map(p => `
-                  <tr>
-                    <td>${p.sym || ''}</td>
-                    <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir || ''}</td>
-                    <td>${(p.vol || 0).toFixed(2)}</td>
-                    <td>${formatPrice(p.ep || 0)}</td>
-                    <td class="${(p.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl || 0)}</td>
-                    <td class="master-label-cell">${p.label || '—'}</td>
-                    <td class="master-comment-cell">${p.comment || '—'}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>` : `<div class="no-positions">No open positions</div>`;
+              `).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    });
+  } else {
+    posContentHTML = '<div class="no-positions">No open positions</div>';
+  }
 
   const positionsHTML = `
       <div class="positions-section">
         <div class="positions-header no-border" onclick="togglePositions(this, 'master_${m.login}')">
           <span>Open Positions: ${posCount}</span>
-          <svg class="pos-chevron collapsed" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+          <svg class="pos-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
         </div>
-        <div class="positions-body collapsed">
+        <div class="positions-body">
           <div class="positions-body-inner">
-            ${posTableHTML}
+            ${posContentHTML}
           </div>
         </div>
       </div>`;
