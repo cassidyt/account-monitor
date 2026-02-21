@@ -3055,6 +3055,15 @@ function updateGlobalStatus(data) {
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+
+// ─── FRESHNESS RE-EVALUATION (every 30s) ──
+// Re-renders status badges without waiting for Firebase push
+setInterval(() => {
+  if (Object.keys(accountsData).length > 0) {
+    renderAccounts(accountsData);
+    updateGlobalStatus(accountsData);
+  }
+}, 30000);
 </script>
 
 </body>
