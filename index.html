@@ -1007,6 +1007,22 @@ td.pnl-neg { color: var(--red); }
   color: var(--text-dim);
 }
 
+/* --- US Markets Section --- */
+.us-markets-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; cursor: pointer; user-select: none;
+}
+.us-markets-header:hover { background: rgba(255,255,255,0.02); }
+.us-markets-header-left { display: flex; align-items: center; gap: 8px; }
+.us-markets-chevron {
+  width: 14px; height: 14px; color: var(--text-dim);
+  transition: transform 0.25s ease; flex-shrink: 0;
+}
+.us-markets-chevron.expanded { transform: rotate(90deg); }
+.us-markets-body { display: none; padding: 0; }
+.us-markets-body.expanded { display: block; }
+.us-markets-widget { height: 420px; border-radius: 0 0 12px 12px; overflow: hidden; background: rgba(12, 16, 25, 1); }
+
 /* --- State Screens --- */
 .state-screen {
   display: flex;
@@ -1233,6 +1249,7 @@ td.pnl-neg { color: var(--red); }
   .flyout-table th:first-child, .flyout-table td:first-child { padding-left: 16px; }
   .flyout-table th:last-child, .flyout-table td:last-child { padding-right: 16px; }
   .market-chart { height: 45vh; min-height: 280px; }
+  .us-markets-widget { height: 350px; }
   .calendar-card { margin-top: 14px; }
   .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
   .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
@@ -1320,6 +1337,18 @@ td.pnl-neg { color: var(--red); }
       <div class="calendar-updated" id="newsUpdated"></div>
     </div>
     <div class="news-body" id="newsBody"></div>
+  </div>
+  <div class="calendar-card">
+    <div class="us-markets-header" onclick="toggleUSMarkets()">
+      <div class="us-markets-header-left">
+        <svg class="us-markets-chevron" id="usMarketsChevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+        <div class="calendar-title">🇺🇸 US Markets</div>
+      </div>
+      <div class="calendar-updated" style="font-size:11px; color:var(--text-dim);">S&P 500 · NASDAQ · Dow Jones</div>
+    </div>
+    <div class="us-markets-body" id="usMarketsBody">
+      <div class="us-markets-widget" id="usMarketsWidget"></div>
+    </div>
   </div>
 </div>
 
@@ -1872,6 +1901,83 @@ function loadNews() {
 
     body.innerHTML = html;
   });
+}
+
+// ─── US MARKETS ─────────────────────────────────────────
+let usMarketsExpanded = false;
+let usMarketsLoaded = false;
+
+function toggleUSMarkets() {
+  const chevron = document.getElementById('usMarketsChevron');
+  const body = document.getElementById('usMarketsBody');
+  usMarketsExpanded = !usMarketsExpanded;
+
+  if (usMarketsExpanded) {
+    chevron.classList.add('expanded');
+    body.classList.add('expanded');
+    if (!usMarketsLoaded) {
+      usMarketsLoaded = true;
+      loadUSMarketsWidget();
+    }
+  } else {
+    chevron.classList.remove('expanded');
+    body.classList.remove('expanded');
+  }
+}
+
+function loadUSMarketsWidget() {
+  const container = document.getElementById('usMarketsWidget');
+  container.innerHTML = '';
+
+  const bgColor = 'rgba(12, 16, 25, 1)';
+  const gridColor = 'rgba(22, 29, 44, 1)';
+
+  const script = document.createElement('script');
+  script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js';
+  script.async = true;
+  script.textContent = JSON.stringify({
+    "symbols": [
+      ["S&P 500", "AMEX:SPY|5d"],
+      ["NASDAQ 100", "NASDAQ:QQQ|5d"],
+      ["Dow Jones", "AMEX:DIA|5d"]
+    ],
+    "chartOnly": false,
+    "width": "100%",
+    "height": "100%",
+    "locale": "en",
+    "colorTheme": "dark",
+    "autosize": true,
+    "showVolume": false,
+    "showMA": false,
+    "hideDateRanges": false,
+    "hideMarketStatus": false,
+    "hideSymbolLogo": false,
+    "scalePosition": "right",
+    "scaleMode": "Normal",
+    "fontFamily": "-apple-system, BlinkMacSystemFont, Trebuchet MS, Roboto, Ubuntu, sans-serif",
+    "fontSize": "10",
+    "noTimeScale": false,
+    "valuesTracking": "1",
+    "changeMode": "price-and-percent",
+    "chartType": "area",
+    "gridLineColor": gridColor,
+    "backgroundColor": bgColor,
+    "lineWidth": 2,
+    "lineType": 0,
+    "dateRanges": ["1d|1", "5d|15", "1m|30", "3m|60", "12m|1D", "60m|1W", "all|1M"]
+  });
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tradingview-widget-container';
+  wrapper.style.height = '100%';
+  wrapper.style.width = '100%';
+  const inner = document.createElement('div');
+  inner.className = 'tradingview-widget-container__widget';
+  inner.style.height = '100%';
+  inner.style.width = '100%';
+  wrapper.appendChild(inner);
+  wrapper.appendChild(script);
+  container.appendChild(wrapper);
 }
 
 // ─── ANALYTICS ──────────────────────────────────────────
@@ -2808,22 +2914,22 @@ function renderMasterCard(m) {
             <thead>
               <tr>
                 <th>Symbol</th>
+                <th>Bot</th>
                 <th>Dir</th>
                 <th>Vol</th>
                 <th>Entry</th>
                 <th>P&L</th>
-                <th>Bot</th>
               </tr>
             </thead>
             <tbody>
               ${positions.map(p => `
                 <tr>
                   <td>${p.sym || ''}</td>
+                  <td class="master-label-cell">${bot === '_manual' ? '—' : label}</td>
                   <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir || ''}</td>
                   <td>${(p.vol || 0).toFixed(2)}</td>
                   <td>${formatPrice(p.ep || 0)}</td>
                   <td class="${(p.pnl || 0) >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl || 0)}</td>
-                  <td class="master-label-cell">${bot === '_manual' ? '—' : label}</td>
                 </tr>
               `).join('')}
             </tbody>
