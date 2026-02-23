@@ -1618,6 +1618,13 @@ firebase.initializeApp(FIREBASE_CONFIG);
 const db = firebase.database();
 
 const params = new URLSearchParams(window.location.search);
+function submitViewer() {
+  const inp = document.getElementById('viewerInput');
+  if (!inp) return;
+  const v = inp.value.trim().toLowerCase();
+  if (v) window.location.href = window.location.pathname + '?v=' + encodeURIComponent(v);
+}
+
 const viewerKey = params.get('v');
 const isAdmin = viewerKey === 'test';
 
@@ -1653,14 +1660,26 @@ if (!viewerKey) {
   document.title = 'Gold Bot Dashboard';
   app.innerHTML = `
     <div class="state-screen">
-      <div class="state-icon">🔑</div>
-      <div class="state-title">No viewer key provided</div>
-      <div class="state-desc">Add your viewer key to the URL:<br>
-        <span style="font-family:var(--mono);color:var(--accent);font-size:13px">
-          ${window.location.origin}${window.location.pathname}?v=yourkey
-        </span>
+      <div style="font-size:22px;font-weight:700;color:var(--accent);margin-bottom:4px;">Gold Bot Dashboard</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;">
+        <label style="font-size:14px;color:var(--text-dim);font-weight:500;">Viewer ID:</label>
+        <input id="viewerInput" type="text" spellcheck="false" autocapitalize="none" autocomplete="off"
+          style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:8px 14px;
+          font-size:14px;color:var(--text);font-family:var(--mono);outline:none;width:160px;"
+          placeholder="e.g. goldlover9000"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+        <button onclick="submitViewer()"
+          style="background:var(--accent);color:#0c1019;border:none;border-radius:8px;padding:8px 18px;
+          font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;">Go</button>
       </div>
     </div>`;
+  setTimeout(() => {
+    const inp = document.getElementById('viewerInput');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') submitViewer(); });
+    }
+  }, 50);
 } else {
   // ─── TITLE & HEADER ──────────────────────────────────────
   if (isAdmin) {
