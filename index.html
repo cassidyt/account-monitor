@@ -2371,6 +2371,8 @@ function openHistory(login) {
   } else if (histRaw && histRaw.trades) {
     trades = histRaw.trades;
     gmtOff = histRaw.gmtOff || 0;  // seconds east of UTC
+    // Sanity check: gmtOff must be between -12h and +14h
+    if (gmtOff < -43200 || gmtOff > 50400) gmtOff = 7200;
   } else {
     trades = null;
   }
@@ -2576,6 +2578,10 @@ function calcTodayPnl(filterLogins) {
     } else {
       continue;
     }
+
+    // Sanity check: gmtOff must be between -12h and +14h (-43200 to 50400 seconds)
+    // During market close, MT5's TimeCurrent() freezes and produces wildly wrong offsets
+    if (gmtOff < -43200 || gmtOff > 50400) gmtOff = 7200;
 
     for (const t of trades) {
       if (!t.ct) continue;
