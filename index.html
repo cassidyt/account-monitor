@@ -2547,7 +2547,7 @@ function openHistory(login) {
         ${isMaster ? '<th>Bot</th>' : ''}
         <th>Dir</th>
         <th>Vol</th>
-        <th>Open</th>
+        <th>Entry</th>
         <th>Close</th>
         <th>P&L</th>
       </tr></thead>
@@ -3016,8 +3016,7 @@ function renderCard(a) {
                   <th>Symbol</th>
                   <th>Dir</th>
                   <th>Volume</th>
-                  <th>Open</th>
-                  <th>Current</th>
+                  <th>Entry</th>
                   <th>P&L</th>
                 </tr>
               </thead>
@@ -3028,7 +3027,6 @@ function renderCard(a) {
                     <td class="${p.dir === 'BUY' ? 'dir-buy' : 'dir-sell'}">${p.dir}</td>
                     <td>${p.vol.toFixed(2)}</td>
                     <td>${formatPrice(p.op)}</td>
-                    <td>${formatPrice(p.cp)}</td>
                     <td class="${p.pnl >= 0 ? 'pnl-pos' : 'pnl-neg'}">${formatMoney(p.pnl)}</td>
                   </tr>
                 `).join('')}
