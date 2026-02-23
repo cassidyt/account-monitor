@@ -1838,6 +1838,22 @@ if (!viewerKey) {
     }
   });
 
+  // ─── RECONNECT ON RESUME ─────────────────────────────────
+  // PWA / standalone apps can have their WebSocket silently killed
+  // when backgrounded. Force Firebase to reconnect when we regain focus.
+  let lastReconnect = 0;
+  function forceReconnect() {
+    const now = Date.now();
+    if (now - lastReconnect < 2000) return;  // debounce 2s
+    lastReconnect = now;
+    firebase.database().goOffline();
+    setTimeout(() => firebase.database().goOnline(), 300);
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') forceReconnect();
+  });
+  window.addEventListener('focus', forceReconnect);
+
   // ─── LIVE TICKER - update header + staleness every second ───
   setInterval(() => {
     if (lastDataTime) {
