@@ -1027,6 +1027,160 @@ td.pnl-neg { color: var(--red); }
 .us-markets-body.expanded { display: block; }
 .us-markets-widget { height: 420px; border-radius: 0 0 12px 12px; overflow: hidden; background: rgba(12, 16, 25, 1); }
 
+/* --- Market Hours Section --- */
+.mkt-hours-section { padding: 16px 20px 20px; }
+.mkt-hours-broker { margin-bottom: 18px; }
+.mkt-hours-broker:last-child { margin-bottom: 0; }
+.mkt-hours-broker-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.mkt-hours-broker-name {
+  font-size: 12px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.mkt-hours-broker-symbol {
+  font-size: 11px; color: var(--accent); font-weight: 500;
+  background: rgba(226, 184, 87, 0.1); padding: 2px 8px; border-radius: 4px;
+}
+.mkt-hours-broker-updated {
+  font-size: 10px; color: var(--text-dim); margin-left: auto; opacity: 0.6;
+}
+
+/* Card row with connectors */
+.mkt-hours-row {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding-bottom: 4px; scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.mkt-hours-row::-webkit-scrollbar { display: none; }
+
+/* Individual day tile */
+.mkt-hours-tile {
+  flex: 0 0 calc((100% - 48px) / 7);
+  min-width: 100px;
+  background: linear-gradient(145deg, #1a2340, #151d35);
+  border-radius: 10px;
+  padding: 10px 10px 12px;
+  scroll-snap-align: start;
+  position: relative;
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.3),
+    0 6px 12px rgba(0,0,0,0.2),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.04);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.mkt-hours-tile:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.35),
+    0 10px 20px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.07);
+}
+
+/* Today tile accent */
+.mkt-hours-tile.is-today {
+  background: linear-gradient(145deg, #1e2a4a, #192242);
+  border-color: rgba(226, 184, 87, 0.25);
+  box-shadow:
+    0 2px 4px rgba(0,0,0,0.3),
+    0 6px 12px rgba(0,0,0,0.2),
+    0 0 20px rgba(226, 184, 87, 0.06),
+    inset 0 1px 0 rgba(226, 184, 87, 0.1);
+}
+.mkt-hours-tile.is-today:hover {
+  box-shadow:
+    0 4px 8px rgba(0,0,0,0.35),
+    0 10px 20px rgba(0,0,0,0.25),
+    0 0 25px rgba(226, 184, 87, 0.1),
+    inset 0 1px 0 rgba(226, 184, 87, 0.12);
+}
+
+/* Today label */
+.mkt-hours-today-badge {
+  position: absolute; top: -9px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px;
+  color: #0c1019; background: var(--accent); padding: 1px 8px; border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Day header */
+.mkt-tile-day {
+  font-size: 12px; font-weight: 700; color: var(--text);
+  margin-bottom: 2px; text-align: center;
+}
+.mkt-tile-date {
+  font-size: 10px; color: var(--text-dim); text-align: center;
+  margin-bottom: 8px;
+}
+
+/* Session blocks */
+.mkt-tile-sessions { display: flex; flex-direction: column; gap: 4px; }
+
+.mkt-session-block {
+  background: rgba(52, 211, 153, 0.08);
+  border-left: 3px solid #34d399;
+  border-radius: 4px;
+  padding: 4px 6px;
+  position: relative;
+}
+.mkt-session-time {
+  font-size: 10px; font-weight: 600; color: #34d399;
+  font-family: var(--mono); line-height: 1.4;
+}
+
+/* Continuation ribbon — session continues from/to adjacent day */
+.mkt-session-block.continues-right::after {
+  content: ''; position: absolute; right: -12px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 6px solid rgba(52, 211, 153, 0.35);
+  z-index: 1;
+}
+.mkt-session-block.continues-left::before {
+  content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-right: 6px solid rgba(52, 211, 153, 0.35);
+  z-index: 1;
+}
+
+/* Now indicator — pulsing dot on the active session */
+.mkt-session-block.is-now {
+  background: rgba(52, 211, 153, 0.15);
+  border-left-color: #4ade80;
+}
+.mkt-session-now-dot {
+  display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+  background: #4ade80; margin-right: 4px; vertical-align: middle;
+  animation: mkt-pulse 2s ease-in-out infinite;
+}
+@keyframes mkt-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4); }
+  50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(74, 222, 128, 0); }
+}
+
+/* Closed state */
+.mkt-tile-closed {
+  text-align: center; padding: 8px 0;
+  font-size: 11px; font-weight: 600; color: var(--text-dim); opacity: 0.5;
+  letter-spacing: 0.5px;
+}
+
+/* Gap between sessions (daily break) */
+.mkt-session-gap {
+  text-align: center; font-size: 8px; color: var(--text-dim); opacity: 0.5;
+  padding: 0 2px; line-height: 1;
+}
+
+/* Loading state */
+.mkt-hours-loading {
+  text-align: center; padding: 20px; color: var(--text-dim); font-size: 13px;
+}
+
 /* --- State Screens --- */
 .state-screen {
   display: flex;
@@ -1254,6 +1408,8 @@ td.pnl-neg { color: var(--red); }
   .flyout-table th:last-child, .flyout-table td:last-child { padding-right: 16px; }
   .market-chart { height: 45vh; min-height: 280px; }
   .us-markets-widget { height: 350px; }
+  .mkt-hours-tile { flex: 0 0 calc((100% - 16px) / 3); min-width: 105px; }
+  .mkt-hours-section { padding: 12px 14px 16px; }
   .calendar-card { margin-top: 14px; }
   .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
   .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
@@ -1321,6 +1477,14 @@ td.pnl-neg { color: var(--red); }
       <div class="calendar-title">Gold / US Dollar (XAU/USD)</div>
     </div>
     <div class="market-chart" id="tvChartContainer"></div>
+  </div>
+  <div class="calendar-card">
+    <div class="calendar-header" style="border-bottom:none; padding-bottom:0;">
+      <div class="calendar-title">🕐 Market Hours</div>
+    </div>
+    <div class="mkt-hours-section" id="mktHoursSection">
+      <div class="mkt-hours-loading">Loading market hours...</div>
+    </div>
   </div>
   <div class="calendar-card">
     <div class="calendar-header">
@@ -1706,6 +1870,7 @@ function navigateTo(page) {
   if (page === 'market' && !tvWidgetLoaded) {
     loadTradingViewWidget();
     tvWidgetLoaded = true;
+    loadMarketHours();
   }
 
   // Lazy-load Analytics chart on first visit
@@ -1906,6 +2071,204 @@ function loadNews() {
     body.innerHTML = html;
   });
 }
+
+// ─── MARKET HOURS ───────────────────────────────────────
+let mktHoursData = null;  // raw Firebase data
+let mktHoursLoaded = false;
+
+function loadMarketHours() {
+  if (mktHoursLoaded) return;
+  mktHoursLoaded = true;
+
+  db.ref('market/hours').on('value', (snapshot) => {
+    mktHoursData = snapshot.val();
+    renderMarketHours();
+  });
+}
+
+function renderMarketHours() {
+  const section = document.getElementById('mktHoursSection');
+  if (!mktHoursData) {
+    section.innerHTML = '<div class="mkt-hours-loading">No market hours data available.</div>';
+    return;
+  }
+
+  let html = '';
+  for (const [brokerKey, broker] of Object.entries(mktHoursData)) {
+    const localDays = buildLocalDays(broker);
+    html += renderBrokerRow(broker, localDays);
+  }
+  section.innerHTML = html;
+}
+
+// Build 7 local days starting from today, each with their session windows
+function buildLocalDays(broker) {
+  const gmtOff = broker.gmtOff || 0;  // broker offset from UTC in seconds
+  const sessions = broker.sessions || {};
+
+  // Convert all broker sessions to UTC minute ranges
+  // Each broker session is on a named day with from/to in seconds since midnight (broker time)
+  const dayOrder = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const utcSessions = [];  // array of { startMinUTC, endMinUTC } absolute within a week
+
+  dayOrder.forEach((dayName, dayIdx) => {
+    const daySessions = sessions[dayName] || [];
+    daySessions.forEach(s => {
+      // Convert broker seconds-since-midnight to UTC minutes-since-week-start (week starts Sunday 00:00 UTC)
+      const brokerDayStartMinUTC = (dayIdx * 1440) - (gmtOff / 60);
+      const startMinUTC = brokerDayStartMinUTC + (s.from / 60);
+      const endMinUTC = brokerDayStartMinUTC + (s.to / 60);
+      utcSessions.push({ startMinUTC, endMinUTC });
+    });
+  });
+
+  // Get viewer's UTC offset in minutes
+  const viewerOffsetMin = -(new Date().getTimezoneOffset());  // JS returns inverted
+
+  // Build 7 days starting from today
+  const now = new Date();
+  const days = [];
+
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(now);
+    date.setDate(date.getDate() + d);
+    date.setHours(0, 0, 0, 0);
+
+    const dayOfWeek = date.getDay(); // 0=Sun
+    const dayName = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek];
+    const fullDay = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'][dayOfWeek];
+    const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+
+    // This local day spans from midnight to midnight in viewer time
+    // Convert to UTC: local midnight = UTC midnight - viewerOffset
+    // We need to find which minute-of-week (UTC) this local day corresponds to
+    const localDayStartUTC = dayOfWeek * 1440 - viewerOffsetMin; // minutes from week start in UTC
+
+    // Find all session windows that overlap with this local day (1440 min window)
+    const dayWindows = [];
+    // Check sessions in current week and also wrapped from previous/next week
+    for (let weekOffset = -1; weekOffset <= 1; weekOffset++) {
+      utcSessions.forEach(s => {
+        const sStart = s.startMinUTC + (weekOffset * 7 * 1440);
+        const sEnd = s.endMinUTC + (weekOffset * 7 * 1440);
+        const dayStart = localDayStartUTC;
+        const dayEnd = localDayStartUTC + 1440;
+
+        // Overlap?
+        if (sEnd > dayStart && sStart < dayEnd) {
+          const clippedStart = Math.max(sStart, dayStart) - dayStart;
+          const clippedEnd = Math.min(sEnd, dayEnd) - dayStart;
+          const continuesLeft = sStart < dayStart;
+          const continuesRight = sEnd > dayEnd;
+
+          dayWindows.push({
+            fromMin: clippedStart,
+            toMin: clippedEnd,
+            continuesLeft,
+            continuesRight,
+          });
+        }
+      });
+    }
+
+    // Sort windows by start time
+    dayWindows.sort((a, b) => a.fromMin - b.fromMin);
+
+    // Determine if "now" falls in any window (only for today, d === 0)
+    let nowMin = -1;
+    if (d === 0) {
+      nowMin = now.getHours() * 60 + now.getMinutes();
+    }
+
+    days.push({
+      dayName,
+      fullDay,
+      dateStr,
+      isToday: d === 0,
+      windows: dayWindows,
+      nowMin,
+    });
+  }
+
+  return days;
+}
+
+function formatTimeFromMin(totalMin) {
+  const h = Math.floor(totalMin / 60) % 24;
+  const m = totalMin % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return m === 0 ? `${h12}${ampm}` : `${h12}:${String(m).padStart(2,'0')}${ampm}`;
+}
+
+function renderBrokerRow(broker, days) {
+  const updatedAt = broker.updatedAt ? new Date(broker.updatedAt.replace(/\./g, '-').replace(' ', 'T') + 'Z') : null;
+  const updatedStr = updatedAt ?
+    updatedAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' +
+    updatedAt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+
+  let html = `<div class="mkt-hours-broker">
+    <div class="mkt-hours-broker-header">
+      <span class="mkt-hours-broker-name">${broker.broker || 'Unknown'}</span>
+      <span class="mkt-hours-broker-symbol">${broker.symbol || 'XAUUSD'}</span>
+      ${updatedStr ? `<span class="mkt-hours-broker-updated">Updated ${updatedStr}</span>` : ''}
+    </div>
+    <div class="mkt-hours-row">`;
+
+  days.forEach((day, idx) => {
+    const todayCls = day.isToday ? ' is-today' : '';
+    html += `<div class="mkt-hours-tile${todayCls}">`;
+
+    if (day.isToday) {
+      html += `<div class="mkt-hours-today-badge">Today</div>`;
+    }
+
+    html += `<div class="mkt-tile-day">${day.dayName}</div>`;
+    html += `<div class="mkt-tile-date">${day.dateStr}</div>`;
+
+    if (day.windows.length === 0) {
+      html += `<div class="mkt-tile-closed">CLOSED</div>`;
+    } else {
+      html += `<div class="mkt-tile-sessions">`;
+      day.windows.forEach((w, wi) => {
+        // Gap indicator between sessions
+        if (wi > 0) {
+          const gapStart = day.windows[wi - 1].toMin;
+          const gapMins = w.fromMin - gapStart;
+          if (gapMins > 0 && gapMins < 180) {
+            html += `<div class="mkt-session-gap">${Math.round(gapMins)}min break</div>`;
+          }
+        }
+
+        const isNow = day.nowMin >= 0 && day.nowMin >= w.fromMin && day.nowMin < w.toMin;
+        let cls = 'mkt-session-block';
+        if (isNow) cls += ' is-now';
+        if (w.continuesRight) cls += ' continues-right';
+        if (w.continuesLeft) cls += ' continues-left';
+
+        const fromStr = w.continuesLeft ? '12AM' : formatTimeFromMin(w.fromMin);
+        const toStr = w.continuesRight ? '12AM' : formatTimeFromMin(w.toMin);
+
+        html += `<div class="${cls}">`;
+        html += `<div class="mkt-session-time">`;
+        if (isNow) html += `<span class="mkt-session-now-dot"></span>`;
+        html += `${fromStr} – ${toStr}`;
+        html += `</div></div>`;
+      });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+// Refresh market hours display every 60 seconds (for "now" indicator movement)
+setInterval(() => {
+  if (mktHoursData) renderMarketHours();
+}, 60000);
 
 // ─── US MARKETS ─────────────────────────────────────────
 let usMarketsExpanded = false;
