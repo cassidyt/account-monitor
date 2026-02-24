@@ -16,7 +16,6 @@
 
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1920,13 +1919,17 @@ function navigateTo(page) {
     loadTradingViewWidget();
     loadGoldInfoWidgets();
     tvWidgetLoaded = true;
+    loadCalendar();
     loadMarketHours();
   }
 
-  // Lazy-load Analytics chart on first visit
+  // Lazy-load Analytics chart + Chart.js on first visit
   if (page === 'analytics' && !analyticsLoaded) {
     analyticsLoaded = true;
-    initAnalytics();
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+    s.onload = () => initAnalytics();
+    document.head.appendChild(s);
   }
 
   // Update hash
@@ -1982,6 +1985,8 @@ let goldInfoLoaded = false;
 
 function loadGoldInfoWidgets() {
   if (goldInfoLoaded) return;
+  // Skip on mobile — widget is hidden via CSS and iframe wastes bandwidth
+  if (window.innerWidth <= 640) return;
   goldInfoLoaded = true;
 
   const container = document.getElementById('goldInfoWidget');
@@ -2031,7 +2036,12 @@ window.addEventListener('hashchange', () => {
 });
 
 // ─── ECONOMIC CALENDAR ──────────────────────────────────
-db.ref('market/calendar').on('value', (snapshot) => {
+let calendarLoaded = false;
+function loadCalendar() {
+  if (calendarLoaded) return;
+  calendarLoaded = true;
+
+  db.ref('market/calendar').on('value', (snapshot) => {
   const data = snapshot.val();
   const body = document.getElementById('calendarBody');
   const updated = document.getElementById('calendarUpdated');
@@ -2102,7 +2112,8 @@ db.ref('market/calendar').on('value', (snapshot) => {
 
   html += '</tbody></table>';
   body.innerHTML = html;
-});
+  });
+}
 
 // ─── NEWS FEED (lazy-loaded on expand) ─────────────────
 let newsLoaded = false;
