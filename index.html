@@ -948,6 +948,41 @@ td.pnl-neg { color: var(--red); }
   font-size: 13px;
 }
 
+/* --- Calendar Filters --- */
+.cal-header-wrap { flex-wrap: wrap; gap: 8px; }
+.cal-controls {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.cal-filter-group {
+  display: flex; gap: 3px;
+}
+.cal-filter-btn {
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border);
+  color: var(--text-dim); font-size: 11px; font-weight: 500;
+  padding: 2px 8px; border-radius: 5px; cursor: pointer;
+  transition: all 0.2s ease; font-family: var(--mono);
+}
+.cal-filter-btn:hover { background: rgba(255,255,255,0.07); color: var(--text); }
+.cal-filter-btn.active {
+  background: rgba(226, 184, 87, 0.12); border-color: rgba(226, 184, 87, 0.3);
+  color: var(--accent); font-weight: 600;
+}
+.cal-filter-sep {
+  width: 1px; height: 14px; background: var(--border); margin: 0 2px;
+}
+.cal-impact-dot {
+  display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  margin-right: 6px; vertical-align: middle; position: relative; top: -0.5px;
+}
+.cal-impact-high { background: #ef4444; }
+.cal-impact-medium { background: #eab308; }
+.cal-impact-low { background: rgba(255,255,255,0.2); }
+.cal-country {
+  font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+  margin-left: 6px; font-weight: 500; letter-spacing: 0.3px;
+}
+.cal-group-first td, .cal-group-mid td { border-bottom-color: transparent; }
+
 .calendar-footer {
   padding: 12px 22px;
   border-top: 1px solid var(--bg-card-border);
@@ -1424,6 +1459,9 @@ td.pnl-neg { color: var(--red); }
   .mkt-hours-section { padding: 12px 14px 16px; }
   .calendar-card { margin-top: 14px; }
   .calendar-header { padding: 14px 16px 10px; flex-direction: column; align-items: flex-start; gap: 4px; }
+  .cal-controls { gap: 6px; }
+  .cal-filter-sep { display: none; }
+  .cal-controls .calendar-updated { width: 100%; }
   .calendar-table th, .calendar-table td { padding: 10px 12px; font-size: 12px; }
   .calendar-table td:last-child { font-size: 11px; }
   .analytics-controls { padding: 12px 16px; gap: 10px; flex-direction: column; align-items: stretch; }
@@ -1500,9 +1538,21 @@ td.pnl-neg { color: var(--red); }
     </div>
   </div>
   <div class="calendar-card">
-    <div class="calendar-header">
-      <div class="calendar-title">📅 U.S. Economic Events This Week</div>
-      <div class="calendar-updated" id="calendarUpdated"></div>
+    <div class="calendar-header cal-header-wrap">
+      <div class="calendar-title">📅 Economic Events This Week</div>
+      <div class="cal-controls">
+        <div class="cal-filter-group">
+          <button class="cal-filter-btn active" data-impact="High" onclick="setCalFilter('impact', 'High')">H</button>
+          <button class="cal-filter-btn" data-impact="Medium" onclick="setCalFilter('impact', 'Medium')">M</button>
+          <button class="cal-filter-btn" data-impact="Low" onclick="setCalFilter('impact', 'Low')">L</button>
+        </div>
+        <div class="cal-filter-sep"></div>
+        <div class="cal-filter-group">
+          <button class="cal-filter-btn active" data-country="USD" onclick="setCalFilter('country', 'USD')">USD</button>
+          <button class="cal-filter-btn" data-country="ALL" onclick="setCalFilter('country', 'ALL')">ALL</button>
+        </div>
+        <div class="calendar-updated" id="calendarUpdated"></div>
+      </div>
     </div>
     <div id="calendarBody"><div class="calendar-empty">Loading calendar...</div></div>
     <div class="calendar-footer">
@@ -2037,25 +2087,75 @@ window.addEventListener('hashchange', () => {
 
 // ─── ECONOMIC CALENDAR ──────────────────────────────────
 let calendarLoaded = false;
+let calendarEvents = [];       // raw events from Firebase
+let calendarLastUpdated = '';
+let calImpactFilter = 'High';  // 'High' | 'Medium' | 'Low'
+let calCountryFilter = 'USD';  // 'USD' | 'ALL'
+
+const CAL_IMPACT_LEVELS = { 'High': 3, 'Medium': 2, 'Low': 1 };
+
+function setCalFilter(type, value) {
+  if (type === 'impact') {
+    calImpactFilter = value;
+    document.querySelectorAll('[data-impact]').forEach(b => {
+      b.classList.toggle('active', b.dataset.impact === value);
+    });
+  } else {
+    calCountryFilter = value;
+    document.querySelectorAll('[data-country]').forEach(b => {
+      b.classList.toggle('active', b.dataset.country === value);
+    });
+  }
+  renderCalendar();
+}
+
 function loadCalendar() {
   if (calendarLoaded) return;
   calendarLoaded = true;
 
   db.ref('market/calendar').on('value', (snapshot) => {
-  const data = snapshot.val();
+    const data = snapshot.val();
+    if (!data || !data.events || data.events.length === 0) {
+      calendarEvents = [];
+      calendarLastUpdated = '';
+    } else {
+      calendarEvents = data.events;
+      calendarLastUpdated = data.lastUpdated || '';
+    }
+    renderCalendar();
+  });
+}
+
+function renderCalendar() {
   const body = document.getElementById('calendarBody');
   const updated = document.getElementById('calendarUpdated');
 
-  if (!data || !data.events || data.events.length === 0) {
-    body.innerHTML = '<div class="calendar-empty">No high-impact events this week.</div>';
+  // Update timestamp
+  if (calendarLastUpdated) {
+    const d = new Date(calendarLastUpdated);
+    updated.textContent = 'Updated ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  } else {
     updated.textContent = '';
+  }
+
+  if (calendarEvents.length === 0) {
+    body.innerHTML = '<div class="calendar-empty">No economic events this week.</div>';
     return;
   }
 
-  // Show last updated in local time
-  if (data.lastUpdated) {
-    const d = new Date(data.lastUpdated);
-    updated.textContent = 'Updated ' + d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  // Filter events
+  const minLevel = CAL_IMPACT_LEVELS[calImpactFilter] || 3;
+  const showAll = calCountryFilter === 'ALL';
+  const filtered = calendarEvents.filter(e => {
+    const level = CAL_IMPACT_LEVELS[e.impact] || 0;
+    if (level < minLevel) return false;
+    if (!showAll && (e.country || 'USD') !== 'USD') return false;
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    body.innerHTML = '<div class="calendar-empty">No events match the current filters.</div>';
+    return;
   }
 
   // Group events by day (in user's local timezone)
@@ -2064,7 +2164,7 @@ function loadCalendar() {
   let nextUpcomingIndex = -1;
   const allEvents = [];
 
-  data.events.forEach((e, i) => {
+  filtered.forEach((e, i) => {
     const d = new Date(e.date);
     const dayKey = d.toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     if (!dayGroups[dayKey]) dayGroups[dayKey] = [];
@@ -2072,7 +2172,6 @@ function loadCalendar() {
     allEvents.push({ date: d, index: i });
   });
 
-  // Find the first event that hasn't happened yet
   for (let i = 0; i < allEvents.length; i++) {
     if (allEvents[i].date > now) {
       nextUpcomingIndex = allEvents[i].index;
@@ -2089,10 +2188,10 @@ function loadCalendar() {
     <tbody>`;
 
   for (const [day, events] of Object.entries(dayGroups)) {
-    // Check if all events in this day group are past
     const allPast = events.every(e => new Date(e.date) <= now);
     html += `<tr><td colspan="3" class="calendar-day-label${allPast ? ' cal-day-past' : ''}">${day}</td></tr>`;
-    events.forEach(e => {
+    let lastTime = '';
+    events.forEach((e, idx) => {
       const d = new Date(e.date);
       const time = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
       const forecast = e.forecast || '—';
@@ -2101,10 +2200,25 @@ function loadCalendar() {
       const isNext = e._globalIndex === nextUpcomingIndex;
       const rowClass = isNext ? 'cal-next' : (isPast ? 'cal-past' : '');
       const titlePrefix = isNext ? '<span style="color:var(--accent);margin-right:4px">▸</span>' : '';
+
+      const impactClass = e.impact === 'High' ? 'cal-impact-high' : e.impact === 'Medium' ? 'cal-impact-medium' : 'cal-impact-low';
+      const dot = `<span class="cal-impact-dot ${impactClass}"></span>`;
+      const countryTag = showAll ? `<span class="cal-country">${e.country || ''}</span>` : '';
+
+      // Suppress duplicate times and remove border within time groups
+      const sameAsPrev = time === lastTime;
+      const nextTime = idx < events.length - 1 ? new Date(events[idx + 1].date).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : '';
+      const sameAsNext = time === nextTime;
+      const showTime = !sameAsPrev;
+      const groupedClass = sameAsNext && !sameAsPrev ? ' cal-group-first' : sameAsPrev && sameAsNext ? ' cal-group-mid' : sameAsPrev && !sameAsNext ? ' cal-group-last' : '';
+      lastTime = time;
+
+      const classes = [rowClass, groupedClass].filter(Boolean).join(' ').trim();
+
       html += `
-        <tr${rowClass ? ' class="' + rowClass + '"' : ''}>
-          <td><span class="calendar-time">${time}</span></td>
-          <td>${titlePrefix}<span class="calendar-event-title">${e.title}</span></td>
+        <tr${classes ? ' class="' + classes + '"' : ''}>
+          <td><span class="calendar-time">${showTime ? time : ''}</span></td>
+          <td>${titlePrefix}${dot}<span class="calendar-event-title">${e.title}</span>${countryTag}</td>
           <td><span class="calendar-forecast">${forecast}</span> / ${previous}</td>
         </tr>`;
     });
@@ -2112,7 +2226,6 @@ function loadCalendar() {
 
   html += '</tbody></table>';
   body.innerHTML = html;
-  });
 }
 
 // ─── NEWS FEED (lazy-loaded on expand) ─────────────────
