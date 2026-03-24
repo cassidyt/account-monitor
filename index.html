@@ -2990,6 +2990,7 @@ function renderChart() {
 // ─── COLLAPSE STATE ─────────────────────────────────────
 const collapsedCards = new Set();
 const expandedPositions = new Set();
+const masterPosSeeded = new Set();
 
 function toggleCard(headerEl) {
   const card = headerEl.closest('.account-card');
@@ -3452,6 +3453,14 @@ function renderMasterCard(m) {
   const posArr = m.positions ? (Array.isArray(m.positions) ? m.positions : Object.values(m.positions)) : [];
   const posCount = posArr.length;
 
+  // Default master positions to expanded (seed set on first encounter)
+  const masterPosKey = 'master_' + m.login;
+  if (posCount > 0 && !masterPosSeeded.has(masterPosKey)) {
+    masterPosSeeded.add(masterPosKey);
+    expandedPositions.add(masterPosKey);
+  }
+  const posOpen = expandedPositions.has(masterPosKey);
+
   // Extract bot name from label like "GRID_XAUUSD_Chanel:Abxt8v0d2"
   function getBotName(p) {
     const src = p.label || p.comment || '';
@@ -3523,11 +3532,11 @@ function renderMasterCard(m) {
 
   const positionsHTML = `
       <div class="positions-section">
-        <div class="positions-header no-border" onclick="togglePositions(this, 'master_${m.login}')">
+        <div class="positions-header${posOpen ? '' : ' no-border'}" onclick="togglePositions(this, 'master_${m.login}')">
           <span>Open Positions: ${posCount}</span>
-          <svg class="pos-chevron" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
+          <svg class="pos-chevron${posOpen ? '' : ' collapsed'}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="4,2 12,8 4,14"/></svg>
         </div>
-        <div class="positions-body">
+        <div class="positions-body${posOpen ? '' : ' collapsed'}">
           <div class="positions-body-inner">
             ${posContentHTML}
           </div>
